@@ -47,7 +47,7 @@ def check_environ():
     if BOT_TOKEN is None:
         print("[-] Invalid BOT_TOKEN")
         exit(1)
-    if CHAT_ID is None:
+    if CHAT_ID is None or CHAT_ID.strip() == "":
         print("[-] Invalid CHAT_ID")
         exit(1)
     try:

@@ -104,7 +104,6 @@ jobs:
           zipAlign: true
 
       - name: Import GPG key
-        if: ${{ env.SIGNING_KEY != '' }}
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
@@ -116,7 +115,6 @@ jobs:
           fi
 
       - name: GPG sign APKs
-        if: ${{ env.SIGNING_KEY != '' }}
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
@@ -164,8 +162,8 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           SESSION_STRING: ${{ secrets.SESSION_STRING }}
-          CHAT_ID: ${{ secrets.CHAT_ID }}
-          MESSAGE_THREAD_ID: ${{ secrets.MESSAGE_THREAD_ID }}
+          CHAT_ID: ${{ vars.CHAT_ID }}
+          MESSAGE_THREAD_ID: ${{ vars.MESSAGE_THREAD_ID }}
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           COMMIT_URL: ${{ github.event.head_commit.url }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -173,6 +171,10 @@ jobs:
           VERSION: ${{ steps.parse_version.outputs.VERSION }}
           BRANCH: ${{ github.ref_name }}
         run: |
+          if [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; then
+            echo "BOT_TOKEN/CHAT_ID not set, skipping."
+            exit 0
+          fi
           python3 -m pip install --upgrade pip
           python3 -m pip install telethon==1.34.0
           RELEASE_APK="${{ steps.sign_app.outputs.signedReleaseFile }}"

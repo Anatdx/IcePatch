@@ -2,7 +2,7 @@
 <resources>
     <string name="apm">系统模块</string>
     <string name="super_key">超级密钥</string>
-    <string name="app_name" translatable="false">APatch</string>
+    <string name="app_name" translatable="false">IcePatch</string>
     <string name="kpm">内核模块</string>
     <string name="android_patch">系统补丁</string>
     <string name="save_log">保存日志</string>
@@ -13,12 +13,12 @@
     <string name="home_install_unknown">未安装或未鉴权</string>
     <string name="home_install_unknown_summary">点此安装</string>
     <string name="reboot_download">重启至 Download</string>
-    <string name="home_click_to_learn_apatch">查看 APatch 的特性和用法</string>
+    <string name="home_click_to_learn_apatch">查看 IcePatch 的特性和用法</string>
     <string name="reboot_edl">重启至 EDL</string>
     <string name="home_installing">安装中</string>
     <string name="safe_mode">安全模式</string>
     <string name="reboot_recovery">重启至 Recovery</string>
-    <string name="home_learn_apatch">了解 APatch</string>
+    <string name="home_learn_apatch">了解 IcePatch</string>
     <string name="kernel_patch">内核补丁</string>
     <string name="home_click_to_install">点此安装</string>
     <string name="about">关于</string>
@@ -42,7 +42,7 @@
     <string name="home_ap_cando_uninstall">卸载</string>
     <string name="apatch_version">版本：%s</string>
     <string name="home_ap_cando_install">安装</string>
-    <string name="home_apatch_version">APatch 版本</string>
+    <string name="home_apatch_version">IcePatch 版本</string>
     <string name="home_su_path">可执行su路径</string>
     <string name="home_ap_cando_update">更新</string>
     <string name="apatch_version_update">版本：%s → %s</string>
@@ -146,7 +146,7 @@
     <string name="hide_apatch_dialog_summary">将使用新的名称安装管理器</string>
     <string name="hide_apatch_manager_failure">隐藏失败，请提交反馈！</string>
     <string name="hide_apatch_manager_summary">安装代理应用，安装包 ID 随机且自定义应用标签</string>
-    <string name="hide_apatch_manager">隐藏 APatch 管理器</string>
+    <string name="hide_apatch_manager">隐藏 IcePatch 管理器</string>
     <string name="kpm_embed">嵌入</string>
     <string name="kpm_add_kpm">添加内核模块</string>
     <string name="kpm_install">安装</string>
@@ -162,7 +162,7 @@
 \n注意只能在 OTA 更新完成后的重启之前使用。
 \n确定要继续吗？</string>
     <string name="home_dialog_auth_fail_title">超级密钥鉴权失败</string>
-    <string name="home_dialog_auth_fail_content">超级密钥验证失败，因此 APatch 不能正常工作。\n下面是一些可能的原因： \n⒈ 未使用 KernelPatch 修补内核镜像 \n⒉ KernelPatch 修补后的内核镜像未刷入 \n⒊超级密钥输入错误或包含特殊字符\n⒋设备不支持 APatch 以及 KernelPatch \n\n请检查后重试，如果问题仍然存在，可随时前往 GitHub 仓库的 issues 页面提问。</string>
+    <string name="home_dialog_auth_fail_content">超级密钥验证失败，因此 IcePatch 不能正常工作。\n下面是一些可能的原因： \n⒈ 未使用 KernelPatch 修补内核镜像 \n⒉ KernelPatch 修补后的内核镜像未刷入 \n⒊超级密钥输入错误或包含特殊字符\n⒋设备不支持 IcePatch 以及 KernelPatch \n\n请检查后重试，如果问题仍然存在，可随时前往 GitHub 仓库的 issues 页面提问。</string>
     <string name="home_more_menu_feedback_or_suggestion">反馈或建议</string>
     <string name="home_more_menu_about">关于</string>
     <string name="settings_check_update">检查更新</string>
@@ -211,6 +211,7 @@
     <string name="sakura_theme">樱花色主题</string>
     <string name="teal_theme">青绿色主题</string>
     <string name="yellow_theme">黄色主题</string>
+    <string name="trans_theme">🏳️‍⚧️ Trans Rights! ✨</string>
     <string name="about_app_version">版本 %1$s</string>
     <string name="about_app_desc">内核级 ROOT 解决方案且无需重新编译内核，同时提供挂载系统模块和 Hook 内核函数的能力。</string>
     <string name="about_github" translatable="false">GitHub</string>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">APatch</string>
+    <string name="app_name" translatable="false">IcePatch</string>
     <string name="reboot">Ponovno pokreni</string>
     <string name="home">Početna</string>
     <string name="patch">Patch</string>
@@ -10,8 +10,8 @@
     <string name="reboot_download">Pokreni u Download</string>
     <string name="reboot_edl">Pokreni u EDL</string>
     <string name="settings_app_language">Jezik</string>
-    <string name="home_learn_apatch">Nauči o APatch-u</string>
-    <string name="home_click_to_learn_apatch">Nauči više o značajkama APatch i kako ih koristiti</string>
+    <string name="home_learn_apatch">Nauči o IcePatch-u</string>
+    <string name="home_click_to_learn_apatch">Nauči više o značajkama IcePatch i kako ih koristiti</string>
     <string name="about_source_code">Pogledaj izvorni kod na %1$s<br/>Pridruži se na našem %2$s kanalu</string>
     <string name="send_log">Pošalji logove</string>
     <string name="safe_mode">Sigurni način</string>
@@ -57,7 +57,7 @@
     <string name="kpm_desc">Opis</string>
     <string name="kpm_args">Argumenti</string>
     <string name="su_title">Superuser</string>
-    <string name="su_pkg_excluded_setting_summary">Uključivanjem ove opcije dozvoljavate APatch-u da vrati bilo koje datoteke modificirane modulima ove aplikacije.</string>
+    <string name="su_pkg_excluded_setting_summary">Uključivanjem ove opcije dozvoljavate IcePatch-u da vrati bilo koje datoteke modificirane modulima ove aplikacije.</string>
     <string name="su_show_system_apps">Prikaži sistemske aplikacije</string>
     <string name="su_hide_system_apps">Sakrij sistemske aplikacije</string>
     <string name="su_refresh">Osvježi</string>
@@ -130,7 +130,7 @@
     <string name="home_system_version">Verzija sustava</string>
     <string name="kpm_install">Instaliraj</string>
     <string name="kpm_control">Kontrola</string>
-    <string name="hide_apatch_manager">Sakrij APatch Manager</string>
+    <string name="hide_apatch_manager">Sakrij IcePatch Manager</string>
     <string name="hide_apatch_manager_failure">Nije moguće sakriti. Molimo prijavite grešku!</string>
     <string name="log_saved">Logovi spremljeni</string>
     <string name="mode_select_page_title">Instaliraj</string>
@@ -150,7 +150,7 @@
     <string name="hide_apatch_dialog_new_manager_name">Novo ime upravitelja</string>
     <string name="settings_night_mode_follow_sys_summary">Automatski prebaci na tamni prikaz ovisno o postavkama sistema</string>
     <string name="patch_item_skey">SuperKey</string>
-    <string name="home_dialog_auth_fail_content">Nije moguće autentificirati SuperKey, stoga APatch ne može pravilno funkcionirati.\nOvo su neki od mogućih uzroka neuspjeha autentifikacije:\n1.</string>
+    <string name="home_dialog_auth_fail_content">Nije moguće autentificirati SuperKey, stoga IcePatch ne može pravilno funkcionirati.\nOvo su neki od mogućih uzroka neuspjeha autentifikacije:\n1.</string>
     <string name="home_more_menu_feedback_or_suggestion">Povratne informacije ili prijedlozi</string>
     <string name="settings_night_theme_enabled">Uključi tamni prikaz</string>
     <string name="settings_custom_color_theme">Boje prikaza</string>

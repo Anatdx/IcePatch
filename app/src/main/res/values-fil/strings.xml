@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">APatch</string>
+    <string name="app_name" translatable="false">IcePatch</string>
     <string name="android_patch">AndroidPatch</string>
     <string name="patch_warnning">Ang instalasyon na ito ay pwede ikaka-sira ng inyong kagamitan, tiyakin muna kung ang iyong data ay naka-backup.</string>
     <string name="kernel_patch">KernelPatch</string>
@@ -20,7 +20,7 @@
     <string name="home_patch_next_step">Susunod na hakbang</string>
     <string name="home_auth_key_desc">Magsimula ng trabaho pagkatapos ng sertipikasyon</string>
     <string name="super_key">SuperKey</string>
-    <string name="home_apatch_version">APatch: %s</string>
+    <string name="home_apatch_version">IcePatch: %s</string>
     <string name="home_su_path">su: %s</string>
     <string name="home_auth_key_title">Ilagay ang superkey</string>
     <string name="home_ap_cando_install">I-install</string>

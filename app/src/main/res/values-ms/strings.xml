@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">APatch</string>
+    <string name="app_name" translatable="false">IcePatch</string>
     <string name="home">Halaman Utama</string>
     <string name="patch_warnning">Pemasangan datang dengan risiko. Sila pastikan anda telah membuat sandaran data.</string>
     <string name="reboot">But semula (Reboot)</string>
     <string name="settings">Tetapan</string>
     <string name="about">Perihal</string>
-    <string name="home_learn_apatch">Ketahui tentang APatch</string>
+    <string name="home_learn_apatch">Ketahui tentang IcePatch</string>
     <string name="reboot_recovery">But semula ke Recovery</string>
     <string name="kernel_patch">KernelPatch</string>
     <string name="android_patch">AndroidPatch</string>
@@ -19,7 +19,7 @@
     <string name="super_key">SuperKey</string>
     <string name="clear_super_key">Clear Key</string>
     <string name="settings_app_language">Bahasa</string>
-    <string name="home_click_to_learn_apatch">Ketahui tentang ciri-ciri APatch dan cara menggunakannya</string>
+    <string name="home_click_to_learn_apatch">Ketahui tentang ciri-ciri IcePatch dan cara menggunakannya</string>
     <string name="system_default">Lalai sistem</string>
     <string name="home_installing">Memasang</string>
     <string name="apatch_version_update">Versi: %s -&gt; %s</string>
@@ -68,9 +68,9 @@
     <string name="patch_item_bootimg_slot">slot:</string>
     <string name="kpm_version">Versi</string>
     <string name="patch">tampalan</string>
-    <string name="apm_uninstall_failed">APatch</string>
-    <string name="apm_uninstall_success">APatch</string>
-    <string name="apm_install">APatch</string>
+    <string name="apm_uninstall_failed">IcePatch</string>
+    <string name="apm_uninstall_success">IcePatch</string>
+    <string name="apm_install">IcePatch</string>
     <string name="apm_version">Versi</string>
     <string name="apm_update">Kemas kini</string>
 </resources>

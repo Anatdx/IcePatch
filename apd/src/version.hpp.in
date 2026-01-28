@@ -1,0 +1,4 @@
+#pragma once
+
+#define APD_VERSION_CODE "@APD_VERSION_CODE@"
+#define APD_VERSION_NAME "@APD_VERSION_NAME@"

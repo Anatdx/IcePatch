@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">APatch</string>
+    <string name="app_name" translatable="false">IcePatch</string>
     <string name="home">Головна</string>
     <string name="kernel_patch">Заплатка ядра</string>
     <string name="android_patch">Заплатка для Android</string>
@@ -10,7 +10,7 @@
     <string name="reboot_bootloader">Перезавантаження в завантажувач</string>
     <string name="reboot_download">Перезавантаження в режим завантаження</string>
     <string name="about">Про</string>
-    <string name="home_learn_apatch">Дізнайтеся більше про APatch</string>
+    <string name="home_learn_apatch">Дізнайтеся більше про IcePatch</string>
     <string name="safe_mode">Безпечний режим</string>
     <string name="super_key">СуперКлюч</string>
     <string name="clear_super_key">Очистити SuperKey</string>
@@ -56,11 +56,11 @@
     <string name="apm_start_downloading">Початок завантаження %s</string>
     <string name="patch_warnning">Інсталяція має ризики. Будь ласка, створіть резервну копію ваших даних.</string>
     <string name="reboot_edl">Перезавантаження в EDL</string>
-    <string name="home_click_to_learn_apatch">Дізнайтеся більше про можливості APatch і про його використання</string>
+    <string name="home_click_to_learn_apatch">Дізнайтеся більше про можливості IcePatch і про його використання</string>
     <string name="about_source_code"><![CDATA[<p> Перегляньте вихідний код на %1$s<p/> Приєднуйтеся до нашого каналу %2$s<p/> Приєднуйтеся до нашої групи %3$s]]></string>
     <string name="send_log">Надіслати журнали</string>
     <string name="apatch_version_update">Версія: %s → %s</string>
-    <string name="home_apatch_version">Версія APatch</string>
+    <string name="home_apatch_version">Версія IcePatch</string>
     <string name="home_need_update">Доступне оновлення</string>
     <string name="home_auth_key_desc">Почати після сертифікації</string>
     <string name="home_ap_cando_uninstall">Видалити</string>
@@ -75,7 +75,7 @@
     <string name="kpm_version">Версія</string>
     <string name="su_title">Суперкористувач</string>
     <string name="su_pkg_excluded_label">Виключити</string>
-    <string name="su_pkg_excluded_setting_summary">Увімкнення цієї опції дозволить APatch відновлювати будь-які файли, змінені модулями цієї програми.</string>
+    <string name="su_pkg_excluded_setting_summary">Увімкнення цієї опції дозволить IcePatch відновлювати будь-які файли, змінені модулями цієї програми.</string>
     <string name="su_hide_system_apps">Приховати системні додатки</string>
     <string name="apm_empty">Немає встановлених модулів</string>
     <string name="apm_install">Встановити</string>
@@ -149,7 +149,7 @@
     <string name="setting_reset_su_path">Скинути шлях до файлу su</string>
     <string name="setting_reset_su_new_path">Новий повний шлях</string>
     <string name="apm_webui_open">Відкрити</string>
-    <string name="hide_apatch_manager">Приховати APatch Manager</string>
+    <string name="hide_apatch_manager">Приховати IcePatch Manager</string>
     <string name="kpm_embed">Вставити</string>
     <string name="kpm_add_kpm">Додати KPM</string>
     <string name="kpm_install">Встановити</string>
@@ -163,7 +163,7 @@
     <string name="mode_select_page_install_inactive_slot_warning">Ваш пристрій буде **ПРИМУШЕНО** завантажитися в поточний неактивний слот після перезавантаження!
 \nВикористовуйте цей параметр лише після завершення OTA.
 \nПродовжити?</string>
-    <string name="home_dialog_auth_fail_content">Неможливо автентифікувати SuperKey, тому APatch не може працювати належним чином. \nНижче наведено кілька можливих причин помилки автентифікації. \n1. Ви не виправили boot.img за допомогою KernelPatch. \n2. Виправлений boot.img не був прошитий. \n3. SuperKey неправильний або містить спеціальні символи. \n4. Ваш пристрій не підтримує APatch і KernelPatch. \n\nПеревірте та повторіть спробу. Якщо проблеми все ще є, ви завжди можете поставити запитання на сторінці проблем офіційного репозиторію.</string>
+    <string name="home_dialog_auth_fail_content">Неможливо автентифікувати SuperKey, тому IcePatch не може працювати належним чином. \nНижче наведено кілька можливих причин помилки автентифікації. \n1. Ви не виправили boot.img за допомогою KernelPatch. \n2. Виправлений boot.img не був прошитий. \n3. SuperKey неправильний або містить спеціальні символи. \n4. Ваш пристрій не підтримує IcePatch і KernelPatch. \n\nПеревірте та повторіть спробу. Якщо проблеми все ще є, ви завжди можете поставити запитання на сторінці проблем офіційного репозиторію.</string>
     <string name="home_more_menu_feedback_or_suggestion">Зворотній зв\'язок</string>
     <string name="home_dialog_auth_fail_title">Помилка авторизації</string>
     <string name="kpm_control_dialog_content">Введіть параметри контролю:</string>

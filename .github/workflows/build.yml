@@ -52,20 +52,12 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: ''
+          packages: 'platform-tools build-tools;36.1.0 ndk;29.0.14206865'
 
-      - name: Install toolchain
-        run: |
-          rustup default stable
-          rustup update stable
-          cargo install cargo-ndk
-          rustup target install aarch64-linux-android
-
-      - name: Cache Rust
-        uses: Swatinem/rust-cache@v2
+      - name: Setup Python
+        uses: actions/setup-python@v6
         with:
-          workspaces: apd
-          cache-targets: false
+          python-version: '3.11'
 
       - name: Build with Gradle
         run: |
@@ -74,13 +66,13 @@ jobs:
           echo 'org.gradle.jvmargs=-Xmx2048m' >> gradle.properties
           echo 'android.native.buildOutput=verbose' >> gradle.properties
           sed -i 's/org.gradle.configuration-cache=true//g' gradle.properties
+          export ANDROID_NDK_HOME="${ANDROID_SDK_ROOT}/ndk/29.0.14206865"
+          export ANDROID_NDK_ROOT="${ANDROID_SDK_ROOT}/ndk/29.0.14206865"
           ./gradlew clean assembleDebug assembleRelease
-          echo "BUILD_TOOL_VERSION=$(ls /usr/local/lib/android/sdk/build-tools/ | tail -n 1)" >> $GITHUB_ENV
 
       - name: Sign Release
         env:
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
-          BUILD_TOOLS_VERSION: ${{ env.BUILD_TOOL_VERSION }}
         if: ${{ env.SIGNING_KEY != '' }}
         continue-on-error: true
         uses: kevin-david/zipalign-sign-android-release@v2
@@ -96,7 +88,6 @@ jobs:
       - name: Sign Debug APK
         env:
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
-          BUILD_TOOLS_VERSION: ${{ env.BUILD_TOOL_VERSION }}
         if: ${{ env.SIGNING_KEY != '' }}
         continue-on-error: true
         uses: kevin-david/zipalign-sign-android-release@v2
@@ -108,6 +99,43 @@ jobs:
           keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD }}
           zipAlign: true
+
+      - name: Import GPG key
+        if: ${{ env.SIGNING_KEY != '' }}
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          if [ -n "$GPG_PRIVATE_KEY" ]; then
+            echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+            echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+            gpgconf --kill gpg-agent
+          fi
+
+      - name: GPG sign APKs
+        if: ${{ env.SIGNING_KEY != '' }}
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          GPG_FINGERPRINT: ${{ secrets.GPG_FINGERPRINT }}
+        run: |
+          if [ -z "$GPG_PRIVATE_KEY" ]; then
+            echo "GPG_PRIVATE_KEY not set, skipping."
+            exit 0
+          fi
+          RELEASE_APK="${{ steps.sign_app.outputs.signedReleaseFile }}"
+          DEBUG_APK="${{ steps.sign_debug_app.outputs.signedReleaseFile }}"
+          if [ -n "$GPG_FINGERPRINT" ]; then
+            KEY_ARG="--local-user $GPG_FINGERPRINT"
+          else
+            KEY_ARG=""
+          fi
+          if [ -f "$RELEASE_APK" ]; then
+            gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" $KEY_ARG --detach-sign "$RELEASE_APK"
+          fi
+          if [ -f "$DEBUG_APK" ]; then
+            gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" $KEY_ARG --detach-sign "$DEBUG_APK"
+          fi
 
       - name: Upload mappings
         uses: actions/upload-artifact@v6
@@ -121,30 +149,33 @@ jobs:
         if: ${{ env.SIGNING_KEY != '' }}
         uses: actions/upload-artifact@v6
         with:
-          name: APatch
+          name: IcePatch
           path: |
             ${{ steps.sign_app.outputs.signedReleaseFile }}
             ${{ steps.sign_debug_app.outputs.signedReleaseFile }}
+            ${{ steps.sign_app.outputs.signedReleaseFile }}.sig
+            ${{ steps.sign_debug_app.outputs.signedReleaseFile }}.sig
 
-      - name: Post to channel
+      - name: Post to channel (apbot)
         if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.ref_type != 'tag' }}
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          SESSION_STRING: ${{ secrets.SESSION_STRING }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          MESSAGE_THREAD_ID: ${{ secrets.MESSAGE_THREAD_ID }}
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           COMMIT_URL: ${{ github.event.head_commit.url }}
-          COMMIT_ID: ${{ github.event.head_commit.id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TITLE: IcePatch
+          VERSION: ${{ steps.parse_version.outputs.VERSION }}
+          BRANCH: ${{ github.ref_name }}
         run: |
-          if [ -n "${BOT_TOKEN}" ]; then
-            CHANNELS=(-1002058433411 -1001910818234)
-            RELEASE_APK="${{ steps.sign_app.outputs.signedReleaseFile }}"
-            DEBUG_APK="${{ steps.sign_debug_app.outputs.signedReleaseFile }}"
-          
-            for CHANNEL in "${CHANNELS[@]}"; do
-              URL=$(python3 .github/scripts/telegram_url.py $CHANNEL)
-              if [ -f "$RELEASE_APK" ] && [ -f "$DEBUG_APK" ]; then
-                curl -v "$URL" -F "Release1=@$RELEASE_APK" -F "Release2=@$DEBUG_APK"
-              fi
-            done
+          python3 -m pip install --upgrade pip
+          python3 -m pip install telethon==1.34.0
+          RELEASE_APK="${{ steps.sign_app.outputs.signedReleaseFile }}"
+          DEBUG_APK="${{ steps.sign_debug_app.outputs.signedReleaseFile }}"
+          if [ -f "$RELEASE_APK" ] && [ -f "$DEBUG_APK" ]; then
+          python3 scripts/apbot.py "$RELEASE_APK" "$DEBUG_APK"
           fi
 
       - name: Release apk
@@ -156,7 +187,7 @@ jobs:
         with:
           token: ${{ github.token }}
           tag: ${{ steps.parse_version.outputs.VERSION }}
-          artifacts: ${{steps.sign_app.outputs.signedReleaseFile}}
+          artifacts: ${{steps.sign_app.outputs.signedReleaseFile}},${{steps.sign_app.outputs.signedReleaseFile}}.sig
           generateReleaseNotes: true
           makeLatest: true
           replacesArtifacts: true

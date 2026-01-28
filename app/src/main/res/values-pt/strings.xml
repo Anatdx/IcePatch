@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">APatch</string>
+    <string name="app_name" translatable="false">IcePatch</string>
     <string name="home">Início</string>
     <string name="patch_warnning">A instalação apresenta riscos. Certifique-se de ter um backup dos seus dados.</string>
     <string name="kernel_patch">KernelPatch</string>
@@ -9,8 +9,8 @@
     <string name="settings">Configurações</string>
     <string name="reboot_recovery">Reiniciar em modo de recuperação</string>
     <string name="about">Sobre</string>
-    <string name="home_learn_apatch">Aprender APatch</string>
-    <string name="home_click_to_learn_apatch">Aprenda sobre as características de APatch e como usar</string>
+    <string name="home_learn_apatch">Aprender IcePatch</string>
+    <string name="home_click_to_learn_apatch">Aprenda sobre as características de IcePatch e como usar</string>
     <string name="super_key">Chave de Segurança</string>
     <string name="patch_set_superkey">Definir Chave de Segurança</string>
     <string name="home_patch_next_step">Próximo passo</string>
@@ -57,7 +57,7 @@
     <string name="apm_downloading">Baixando o módulo \"%s\"…</string>
     <string name="about_source_code"><![CDATA[<p>Veja o código-fonte em %1$s<p/>Participe do nosso canal %2$s<p/>Participe do nosso grupo %3$s]]></string>
     <string name="clear_super_key">Limpar chave</string>
-    <string name="home_apatch_version">Versão APatch</string>
+    <string name="home_apatch_version">Versão IcePatch</string>
     <string name="kpm_license">Licença</string>
     <string name="kpm_author">Autor</string>
     <string name="kpm_desc">Descrição</string>
@@ -65,7 +65,7 @@
     <string name="su_title">SuperUsuário</string>
     <string name="su_pkg_excluded_label">excluir</string>
     <string name="su_pkg_excluded_setting_title">Excluir modificações</string>
-    <string name="su_pkg_excluded_setting_summary">Ativar esta opção permitirá que o APatch restaure quaisquer ficheiros modificados pelos módulos deste app.</string>
+    <string name="su_pkg_excluded_setting_summary">Ativar esta opção permitirá que o IcePatch restaure quaisquer ficheiros modificados pelos módulos deste app.</string>
     <string name="su_show_system_apps">Mostrar apps do sistema</string>
     <string name="su_hide_system_apps">Ocultar apps do sistema</string>
     <string name="su_refresh">Atualizar</string>
@@ -140,7 +140,7 @@
     <string name="about_powered_by">Alimentado por %1$s</string>
     <string name="about_app_desc">Solução root do kernel com uma única imagem despojada, oferecendo a capacidade de montar módulos do sistema e interceptar funções do kernel.</string>
     <string name="patch_mode_patch_and_install">Modo: Patch e instalar</string>
-    <string name="home_dialog_auth_fail_content">Não foi possível autenticar a SuperKey, portanto o APatch não pode funcionar corretamente. \nAqui estão alguns possíveis motivos para a falha de autenticação:\n1. Não fez patch do boot.img com KernelPatch.\n2. O boot.img corrigido não foi flashado.\n3. A SuperKey está incorreta ou contém caracteres especiais.\n4. O seu dispositivo não oferece suporte ao APatch e KernelPatch.\n\nPor favor, verifique e tente novamente. Se ainda houver problemas, pode fazer perguntas na página de problemas do repositório oficial.</string>
+    <string name="home_dialog_auth_fail_content">Não foi possível autenticar a SuperKey, portanto o IcePatch não pode funcionar corretamente. \nAqui estão alguns possíveis motivos para a falha de autenticação:\n1. Não fez patch do boot.img com KernelPatch.\n2. O boot.img corrigido não foi flashado.\n3. A SuperKey está incorreta ou contém caracteres especiais.\n4. O seu dispositivo não oferece suporte ao IcePatch e KernelPatch.\n\nPor favor, verifique e tente novamente. Se ainda houver problemas, pode fazer perguntas na página de problemas do repositório oficial.</string>
     <string name="patch_mode_install_to_next_slot">Modo: Instalar no slot inativo (após OTA)</string>
     <string name="patch_mode_uninstall_patch">Modo: Desinstalar KPatch</string>
     <string name="patch_embed_kpm_btn">Introduzir KPM</string>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">APatch</string>
+    <string name="app_name" translatable="false">IcePatch</string>
     <string name="home">Ana səhifə</string>
     <string name="patch_warnning">Quraşdırma risklərlə gəlir. Zəhmət olmasa, məlumatlarınızın yedəkləndiyindən əmin olun.</string>
     <string name="patch">Yamaq</string>
@@ -10,7 +10,7 @@
     <string name="reboot_download">Yükləmə rejiminə yenidən başlat</string>
     <string name="about">Haqqında</string>
     <string name="settings_app_language">Dil</string>
-    <string name="home_learn_apatch">APatch haqqında öyrənin</string>
+    <string name="home_learn_apatch">IcePatch haqqında öyrənin</string>
     <string name="about_source_code">Mənbə koduna %1$s ünvanında baxın<br/>%2$s kanalımıza qoşulun.qrupumuza qoşulun.</string>
     <string name="system_default">Sistem defoltu</string>
     <string name="send_log">Günlükü göndərin</string>
@@ -33,7 +33,7 @@
     <string name="kpatch_version">Versiya: %s</string>
     <string name="kernel_patch">NüvəYamağı</string>
     <string name="android_patch">AndroidYamağı</string>
-    <string name="home_apatch_version">APatch: %s</string>
+    <string name="home_apatch_version">IcePatch: %s</string>
     <string name="home_auth_key_title">SuperAçarı daxil edin</string>
     <string name="home_auth_key_desc">Sertifikasiyadan sonra başlayın</string>
     <string name="home_ap_cando_install">Quraşdır</string>
@@ -61,7 +61,7 @@
     <string name="su_selinux_via_hook">Çəngəl ilə yan keçin</string>
     <string name="su_pkg_excluded_label">istisna</string>
     <string name="su_pkg_excluded_setting_title">Dəyişiklikləri istisna edin</string>
-    <string name="su_pkg_excluded_setting_summary">Bu seçimin aktivləşdirilməsi APatch-ə bu proqram üçün modullar tərəfindən hər hansı dəyişdirilmiş faylları bərpa etməyə imkan verəcək.</string>
+    <string name="su_pkg_excluded_setting_summary">Bu seçimin aktivləşdirilməsi IcePatch-ə bu proqram üçün modullar tərəfindən hər hansı dəyişdirilmiş faylları bərpa etməyə imkan verəcək.</string>
     <string name="su_show_system_apps">Sistem proqramlarını göstərin</string>
     <string name="su_hide_system_apps">Sistem proqramlarını gizlədin</string>
     <string name="su_refresh">Yeniləyin</string>
@@ -87,7 +87,7 @@
     <string name="reboot_edl">Təcili yükləmə rejiminə yenidən başlat</string>
     <string name="home_click_to_install">Quraşdırmaq üçün toxunun</string>
     <string name="settings">Ayarlar</string>
-    <string name="home_click_to_learn_apatch">APatch-in xüsusiyyətləri və necə istifadə olunacağını öyrənin</string>
+    <string name="home_click_to_learn_apatch">IcePatch-in xüsusiyyətləri və necə istifadə olunacağını öyrənin</string>
     <string name="home_manager_version">Menecer versiyası</string>
     <string name="kpm_kp_not_installed">KernelPatch quraşdırılmayıb</string>
     <string name="kpm_version">Versiya</string>
@@ -194,7 +194,7 @@
     <string name="yellow_theme">Sarı Tema</string>
     <string name="about_app_version">Versiya %1$s</string>
     <string name="apm_webui_open">Aç</string>
-    <string name="home_dialog_auth_fail_content">Super açarın doğrulanması mümkün deyil, buna görə də APAtch düzgün işləyə bilməz. \nDoğrulama uğursuzluğunun bəzi mümkün səbəbləri bunlardır: \n1. Siz boot ­görüntüsü KernelPatch ilə yamalamamısınız. \n2. Yamalı boot görüntüsü flashlanmadı. \n3. Super açar səhvdir. \n4. Cihazınız APatch və KernelPatch-i dəstəkləmir. \n \nZəhmət olmasa yoxlayın və yenidən cəhd edin. Hələ də problemlər varsa, siz həmişə rəsmi repozitoriyanın problem səhifəsində sual verə bilərsiniz.</string>
+    <string name="home_dialog_auth_fail_content">Super açarın doğrulanması mümkün deyil, buna görə də APAtch düzgün işləyə bilməz. \nDoğrulama uğursuzluğunun bəzi mümkün səbəbləri bunlardır: \n1. Siz boot ­görüntüsü KernelPatch ilə yamalamamısınız. \n2. Yamalı boot görüntüsü flashlanmadı. \n3. Super açar səhvdir. \n4. Cihazınız IcePatch və KernelPatch-i dəstəkləmir. \n \nZəhmət olmasa yoxlayın və yenidən cəhd edin. Hələ də problemlər varsa, siz həmişə rəsmi repozitoriyanın problem səhifəsində sual verə bilərsiniz.</string>
     <string name="kpm_control_outMsg">Mesajlar</string>
     <string name="kpm_control_paramters">Parametrlər</string>
     <string name="kpm_control_dialog_content">Giriş nəzarət parametrləri:</string>
@@ -204,7 +204,7 @@
     <string name="about_telegram_channel">Telegram Kanalı</string>
     <string name="about_telegram_group">Telegram Qrupu</string>
     <string name="about_powered_by">%1$s tərəfindən gücləndirildi</string>
-    <string name="hide_apatch_manager">Gizli APatch Meneceri</string>
+    <string name="hide_apatch_manager">Gizli IcePatch Meneceri</string>
     <string name="log_saved">Qeydlər yaddaşda saxlandı</string>
     <string name="apm_action">Fəaliyyət</string>
     <string name="about_app_desc">Yalnızca sadələşdirilmiş kernel təsviri ilə kernel root həlli – sistem modullarını qoşmaq və kernel funksiyalarını ələ keçirmək imkanını təmin edir.</string>

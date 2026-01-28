@@ -61,7 +61,7 @@
     <string name="patch_item_extra_author">Izstrādātājs:</string>
     <string name="home_selinux_status">SELinux statuss</string>
     <string name="home_selinux_status_disabled">Atspējots</string>
-    <string name="home_apatch_version">APatch versija</string>
+    <string name="home_apatch_version">IcePatch versija</string>
     <string name="kpm_load">Ielādēt</string>
     <string name="kpm_load_toast_succ">Veiksmīgi ielādēts</string>
     <string name="kpm_load_toast_failed">Neizdevās ielādēt</string>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">APatch</string>
+    <string name="app_name" translatable="false">IcePatch</string>
     <string name="kernel_patch">KernelPatch</string>
     <string name="android_patch">AndroidPatch</string>
     <string name="reboot_recovery">Redémarrer en mode récupération</string>
@@ -25,7 +25,7 @@
     <string name="kpatch_version">Version : %s</string>
     <string name="clear_super_key">Effacer la clé</string>
     <string name="home_su_path">Exécutable su</string>
-    <string name="home_apatch_version">Version d\'APatch</string>
+    <string name="home_apatch_version">Version d\'IcePatch</string>
     <string name="apatch_version_update">Version : %s -&gt; %s</string>
     <string name="about_source_code"><![CDATA[<p>Voir le code source sur %1$s<p/>Rejoindre notre canal %2$s<p/>Rejoindre notre groupe %3$s]]></string>
     <string name="patch_set_superkey">Initialiser la clé</string>
@@ -85,7 +85,7 @@
     <string name="kpm_apm_empty">Aucun module chargé</string>
     <string name="apm_failed_to_enable">Impossible d\'activer le module \"%s\"</string>
     <string name="kpm_args">Arguments</string>
-    <string name="su_pkg_excluded_setting_summary">L\'activation de cette option permettra à APatch de restaurer tous les fichiers modifiés par les modules de cette application.</string>
+    <string name="su_pkg_excluded_setting_summary">L\'activation de cette option permettra à IcePatch de restaurer tous les fichiers modifiés par les modules de cette application.</string>
     <string name="apm_remove">Désinstaller</string>
     <string name="su_pkg_excluded_setting_title">Exclure les modifications</string>
     <string name="apm_overlay_fs_not_available">Les modules sont indisponibles car OverlayFS est désactivé par le noyau !</string>
@@ -135,7 +135,7 @@
     <string name="patch_mode_uninstall_patch">Mode : Dépatch</string>
     <string name="patch_item_extra_version">Version :</string>
     <string name="patch_item_extra_args">Args :</string>
-    <string name="hide_apatch_manager">Masquer le gestionnaire APatch</string>
+    <string name="hide_apatch_manager">Masquer le gestionnaire IcePatch</string>
     <string name="setting_reset_su_new_path">nouveau chemin complet</string>
     <string name="patch_item_existed_extra_kpm">Existait</string>
     <string name="settings_donot_store_superkey_summary">Authentifier la clé à chaque démarrage du gestionnaire</string>
@@ -162,7 +162,7 @@
     <string name="mode_select_page_install_inactive_slot_warning">Votre appareil sera **FORCÉ** de démarrer sur le slot inactif actuel après un redémarrage !
 \nN\'utilisez cette option qu\'une fois l\'OTA terminée.
 \nContinuer ?</string>
-    <string name="home_dialog_auth_fail_content">Impossible d\'authentifier la clé, par conséquent APatch ne peut pas fonctionner correctement. \nVoici quelques raisons possibles de l\'échec de l\'authentification : \n1. Vous n\'avez pas patché l\'image de démarrage avec KernelPatch. \n2. L\'image de démarrage patchée n\'a pas été flashée. \n3. La clé est erronée. \n4. Votre appareil ne prend pas en charge APatch et KernelPatch. \n \nVeuillez vérifier et réessayer. Si des problèmes persistent, vous pouvez toujours poser vos questions sur le dépôt officiel.</string>
+    <string name="home_dialog_auth_fail_content">Impossible d\'authentifier la clé, par conséquent IcePatch ne peut pas fonctionner correctement. \nVoici quelques raisons possibles de l\'échec de l\'authentification : \n1. Vous n\'avez pas patché l\'image de démarrage avec KernelPatch. \n2. L\'image de démarrage patchée n\'a pas été flashée. \n3. La clé est erronée. \n4. Votre appareil ne prend pas en charge IcePatch et KernelPatch. \n \nVeuillez vérifier et réessayer. Si des problèmes persistent, vous pouvez toujours poser vos questions sur le dépôt officiel.</string>
     <string name="settings_donot_store_superkey">Ne pas stocker la clé localement</string>
     <string name="apm_webui_open">Ouvrir l\'interface web</string>
     <string name="enable_web_debugging">Activer le débogage WebView</string>

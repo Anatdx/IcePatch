@@ -52,8 +52,37 @@ val baseArgs = mutableListOf(
     "-DCMAKE_CXX_VISIBILITY_PRESET=hidden", "-DCMAKE_C_VISIBILITY_PRESET=hidden"
 ).apply { if (ccache != null) add("-DANDROID_CCACHE=$ccache") }
 
+val keystoreFileValue = providers.gradleProperty("KEYSTORE_FILE").orNull
+    ?: System.getenv("KEYSTORE_FILE")
+val keystorePasswordValue = providers.gradleProperty("KEYSTORE_PASSWORD").orNull
+    ?: System.getenv("KEYSTORE_PASSWORD")
+val keyAliasValue = providers.gradleProperty("KEY_ALIAS").orNull
+    ?: System.getenv("KEY_ALIAS")
+val keyPasswordValue = providers.gradleProperty("KEY_PASSWORD").orNull
+    ?: System.getenv("KEY_PASSWORD")
+val hasReleaseSigning =
+    !keystoreFileValue.isNullOrBlank() &&
+        !keystorePasswordValue.isNullOrBlank() &&
+        !keyAliasValue.isNullOrBlank() &&
+        !keyPasswordValue.isNullOrBlank()
+
 android {
-    namespace = "me.bmax.apatch"
+    namespace = "com.anatdx.icepatch"
+
+    signingConfigs {
+        create("release") {
+            if (hasReleaseSigning) {
+                storeFile = file(keystoreFileValue!!)
+                storePassword = keystorePasswordValue
+                keyAlias = keyAliasValue
+                keyPassword = keyPasswordValue
+                enableV1Signing = true
+                enableV2Signing = true
+            } else {
+                logger.lifecycle("Release signing disabled: set KEYSTORE_* to enable.")
+            }
+        }
+    }
 
     buildTypes {
         debug {
@@ -75,6 +104,9 @@ android {
             isShrinkResources = true
             isDebuggable = false
             multiDexEnabled = true
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             vcsInfo.include = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -120,7 +152,7 @@ android {
             }
         }
         buildConfigField("String", "buildKPV", "\"$kernelPatchVersion\"")
-        base.archivesName = "APatch_${managerVersionCode}_${managerVersionName}_${branchName}"
+        base.archivesName = "IcePatch_${managerVersionCode}_${managerVersionName}_${branchName}"
     }
 
     compileOptions {
@@ -254,17 +286,34 @@ tasks.getByName("preBuild").dependsOn(
     "mergeScripts",
 )
 
-// https://github.com/bbqsrc/cargo-ndk
-// cargo ndk -t arm64-v8a build --release
-tasks.register<Exec>("cargoBuild") {
-    executable("cargo")
-    args("ndk", "-t", "arm64-v8a", "build", "--release")
-    workingDir("${project.rootDir}/apd")
+tasks.register<Exec>("cmakeConfigureApd") {
+    val ndkDir = System.getenv("ANDROID_NDK_HOME")
+        ?: System.getenv("ANDROID_NDK_ROOT")
+        ?: throw GradleException("ANDROID_NDK_HOME/ANDROID_NDK_ROOT is not set.")
+    commandLine(
+        "cmake",
+        "-S", "${project.rootDir}/apd",
+        "-B", "${project.rootDir}/apd/build",
+        "-DCMAKE_TOOLCHAIN_FILE=$ndkDir/build/cmake/android.toolchain.cmake",
+        "-DANDROID_ABI=arm64-v8a",
+        "-DANDROID_PLATFORM=android-21",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DAPD_OUTPUT_DIR=${project.rootDir}/apd/build/output"
+    )
+}
+
+tasks.register<Exec>("cmakeBuildApd") {
+    dependsOn("cmakeConfigureApd")
+    commandLine(
+        "cmake",
+        "--build", "${project.rootDir}/apd/build",
+        "--parallel"
+    )
 }
 
 tasks.register<Copy>("buildApd") {
-    dependsOn("cargoBuild")
-    from("${project.rootDir}/apd/target/aarch64-linux-android/release/apd")
+    dependsOn("cmakeBuildApd")
+    from("${project.rootDir}/apd/build/output/apd")
     into("${project.projectDir}/libs/arm64-v8a")
     rename("apd", "libapd.so")
 }
@@ -275,15 +324,11 @@ tasks.configureEach {
     }
 }
 
-tasks.register<Exec>("cargoClean") {
-    executable("cargo")
-    args("clean")
-    workingDir("${project.rootDir}/apd")
-}
-
 tasks.register<Delete>("apdClean") {
-    dependsOn("cargoClean")
-    delete(file("${project.projectDir}/libs/arm64-v8a/libapd.so"))
+    delete(
+        file("${project.projectDir}/libs/arm64-v8a/libapd.so"),
+        file("${project.rootDir}/apd/build")
+    )
 }
 
 tasks.clean {

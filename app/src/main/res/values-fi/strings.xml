@@ -32,8 +32,8 @@
     <string name="settings_clear_super_key_dialog">Haluatko todella edetä?</string>
     <string name="settings_check_update">Tarkista päivityksen varalta</string>
     <string name="settings_check_update_summary">Tarkista päivitysten varalta automaattisesti sovelluksen avaamisen yhteydessä</string>
-    <string name="home_learn_apatch">Opettele APatch</string>
-    <string name="home_click_to_learn_apatch">Tutustu APatchin ominaisuuksiin ja sen käyttöön</string>
+    <string name="home_learn_apatch">Opettele IcePatch</string>
+    <string name="home_click_to_learn_apatch">Tutustu IcePatchin ominaisuuksiin ja sen käyttöön</string>
     <string name="about_source_code"><![CDATA[<p>Tarkastele lähdekoodia %1$s<p/>Liity %2$s-kanavallemme<p/>Liity %3$s-ryhmäämme]]>:ssa</string>
     <string name="send_log">Lähetä lokit</string>
     <string name="save_log">Tallenna lokit</string>
@@ -98,7 +98,7 @@
     <string name="kpm_install">Asenna</string>
     <string name="kpm_embed">Upota</string>
     <string name="home_kpatch_version">KernelPatch-versio</string>
-    <string name="home_apatch_version">APatch-versio</string>
+    <string name="home_apatch_version">IcePatch-versio</string>
     <string name="kpm_load_toast_succ">Lataus onnistuu</string>
     <string name="kpm_kp_not_installed">KernelPatch ei asennettu</string>
     <string name="kpm_add_kpm">Lisää KPM</string>
@@ -120,7 +120,7 @@
     <string name="settings_donot_store_superkey_summary">Todenna SuperKey aina, kun hallinta käynnistyy</string>
     <string name="mode_select_page_install_inactive_slot_warning">Laitteesi **pakottaa** käynnistymään nykyiseen ei-aktiiviseen kiinnittimeen uudelleenkäynnistyksen jälkeen!\nKäytä tätä vaihtoehtoa vasta OTA:n jälkeen.\nJatketaanko?</string>
     <string name="kpm_control_outMsg">Viesti</string>
-    <string name="home_dialog_auth_fail_content">SuperKeyä ei voi todentaa, joten APatch ei voi toimia kunnolla.\nTässä on joitain mahdollisia syitä todennuksen epäonnistumiseen:\n1. Et korjannut boot.img:ia KernelPatchilla.\n2. Korjattuun boot.img:iin flash-toimintaa ei ole sovellettu.\n3. SuperKey on väärä tai sisältää erikoismerkkejä.\n4. Laitteesi ei tue APatchia ja KernelPatchia.\n\nTarkista ja yritä uudelleen. Jos ongelmia ilmenee edelleen, voit aina esittää kysymyksiä virallisen tietovaraston ongelmasivulla.</string>
+    <string name="home_dialog_auth_fail_content">SuperKeyä ei voi todentaa, joten IcePatch ei voi toimia kunnolla.\nTässä on joitain mahdollisia syitä todennuksen epäonnistumiseen:\n1. Et korjannut boot.img:ia KernelPatchilla.\n2. Korjattuun boot.img:iin flash-toimintaa ei ole sovellettu.\n3. SuperKey on väärä tai sisältää erikoismerkkejä.\n4. Laitteesi ei tue IcePatchia ja KernelPatchia.\n\nTarkista ja yritä uudelleen. Jos ongelmia ilmenee edelleen, voit aina esittää kysymyksiä virallisen tietovaraston ongelmasivulla.</string>
     <string name="about_app_desc">Kernel-juuriratkaisu, jossa on vain poistettu ytimen kuva, joka tarjoaa mahdollisuuden asentaa järjestelmämoduulia ja kiinnittää kernel-toiminnon.</string>
     <string name="kpm_control_ok">Toiminta onnistui!</string>
     <string name="settings_night_mode_follow_sys_summary">Vaihda automaattisesti tummaan teemaan järjestelmäasetusten mukaan</string>
@@ -129,7 +129,7 @@
     <string name="su_selinux_via_hook">ohita koukun kautta</string>
     <string name="su_pkg_excluded_label">sulje pois</string>
     <string name="su_pkg_excluded_setting_title">Sulje pois muutokset</string>
-    <string name="su_pkg_excluded_setting_summary">Tämän vaihtoehdon ottaminen käyttöön antaa APatchille mahdollisuuden palauttaa kaikki tämän sovelluksen moduulien muokkaamat tiedostot.</string>
+    <string name="su_pkg_excluded_setting_summary">Tämän vaihtoehdon ottaminen käyttöön antaa IcePatchille mahdollisuuden palauttaa kaikki tämän sovelluksen moduulien muokkaamat tiedostot.</string>
     <string name="su_show_system_apps">Näytä järjestelmäsovellukset</string>
     <string name="su_hide_system_apps">Piilota järjestelmäsovellukset</string>
     <string name="su_refresh">Virkistä</string>
@@ -151,7 +151,7 @@
     <string name="apm_changelog">Muutosloki</string>
     <string name="apm_start_downloading">Aloita %s:n lataaminen</string>
     <string name="apm_new_version_available">Uusi versio %s on saatavilla, päivitä napsauttamalla.</string>
-    <string name="hide_apatch_manager">Piilota APatch-hallinta</string>
+    <string name="hide_apatch_manager">Piilota IcePatch-hallinta</string>
     <string name="hide_apatch_dialog_new_manager_name">Uusi hallinnan nimi</string>
     <string name="hide_apatch_dialog_summary">Sitä käytetään käynnistysohjelmassa uutena näkyvänä sovelluksen nimikkeenä</string>
     <string name="hide_apatch_manager_failure">Piilottaminen epäonnistui. Ilmoita viasta!</string>

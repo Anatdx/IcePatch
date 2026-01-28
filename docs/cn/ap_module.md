@@ -5,7 +5,7 @@ APatch 提供了一个模块机制（ AndroidPatch Module），它可以在保�
 APatch 的模块实现是从 [KernelSU](https://github.com/tiann/KernelSU) 模块复制并修改而来，感谢 KernelSU。  
 具体修改的代码对应位置：  
 KernelSU: [https://github.com/tiann/KernelSU/tree/main/userspace/ksud](https://github.com/tiann/KernelSU/tree/main/userspace/ksud)  
-APatch: [https://github.com/bmax121/APatch/tree/main/apd](https://github.com/bmax121/APatch/tree/main/apd)
+APatch: [https://github.com/Anatdx/IcePatch/tree/main/apd](https://github.com/Anatdx/IcePatch/tree/main/apd)
 
 以下的文档内容也是从 KernelSU 的文档复制并修改而来，其中大部分的内容是一致。需要注意的主要有以下几个地方
 

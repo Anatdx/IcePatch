@@ -69,10 +69,12 @@ jobs:
           export ANDROID_NDK_HOME="${ANDROID_SDK_ROOT}/ndk/29.0.14206865"
           export ANDROID_NDK_ROOT="${ANDROID_SDK_ROOT}/ndk/29.0.14206865"
           ./gradlew clean assembleDebug assembleRelease
+          echo "BUILD_TOOLS_VERSION=36.1.0" >> $GITHUB_ENV
 
       - name: Sign Release
         env:
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          BUILD_TOOLS_VERSION: ${{ env.BUILD_TOOLS_VERSION }}
         if: ${{ env.SIGNING_KEY != '' }}
         continue-on-error: true
         uses: kevin-david/zipalign-sign-android-release@v2
@@ -88,6 +90,7 @@ jobs:
       - name: Sign Debug APK
         env:
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          BUILD_TOOLS_VERSION: ${{ env.BUILD_TOOLS_VERSION }}
         if: ${{ env.SIGNING_KEY != '' }}
         continue-on-error: true
         uses: kevin-david/zipalign-sign-android-release@v2

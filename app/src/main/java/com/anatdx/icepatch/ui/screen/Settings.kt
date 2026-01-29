@@ -2,7 +2,6 @@ package com.anatdx.icepatch.ui.screen
 
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -27,14 +27,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BugReport
-import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Commit
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.DeveloperMode
 import androidx.compose.material.icons.filled.Engineering
-import androidx.compose.material.icons.filled.FormatColorFill
-import androidx.compose.material.icons.filled.InvertColors
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Translate
@@ -65,6 +61,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringArrayResource
@@ -80,6 +77,7 @@ import androidx.core.content.edit
 import androidx.core.os.LocaleListCompat
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
+import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -90,6 +88,7 @@ import com.anatdx.icepatch.R
 import com.anatdx.icepatch.ui.component.SwitchItem
 import com.anatdx.icepatch.ui.component.rememberConfirmDialog
 import com.anatdx.icepatch.ui.component.rememberLoadingDialog
+import com.anatdx.icepatch.ui.theme.TopBarStyle
 import com.anatdx.icepatch.ui.theme.refreshTheme
 import com.anatdx.icepatch.util.APatchKeyHelper
 import com.anatdx.icepatch.util.getBugreportFile
@@ -100,6 +99,7 @@ import com.anatdx.icepatch.util.setGlobalNamespaceEnabled
 import com.anatdx.icepatch.util.ui.APDialogBlurBehindUtils
 import com.anatdx.icepatch.util.ui.LocalSnackbarHost
 import com.anatdx.icepatch.util.ui.NavigationBarsSpacer
+import com.ramcosta.composedestinations.generated.destinations.SettingsMoreScreenDestination
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -107,7 +107,7 @@ import java.util.Locale
 @Destination<RootGraph>
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun SettingScreen() {
+fun SettingScreen(navigator: DestinationsNavigator) {
     val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     val kPatchReady = state != APApplication.State.UNKNOWN_STATE
     val aPatchReady =
@@ -125,9 +125,11 @@ fun SettingScreen() {
     val snackBarHost = LocalSnackbarHost.current
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.settings)) },
+                colors = TopBarStyle.topAppBarColors()
             )
         },
         snackbarHost = { SnackbarHost(snackBarHost) }
@@ -149,15 +151,12 @@ fun SettingScreen() {
             ResetSUPathDialog(showResetSuPathDialog)
         }
 
-        val showThemeChooseDialog = remember { mutableStateOf(false) }
-        if (showThemeChooseDialog.value) {
-            ThemeChooseDialog(showThemeChooseDialog)
-        }
+        val scope = rememberCoroutineScope()
+        val context = LocalContext.current
+        val prefs = APApplication.sharedPreferences
 
         var showLogBottomSheet by remember { mutableStateOf(false) }
 
-        val scope = rememberCoroutineScope()
-        val context = LocalContext.current
         val logSavedMessage = stringResource(R.string.log_saved)
         val exportBugreportLauncher = rememberLauncherForActivityResult(
             ActivityResultContracts.CreateDocument("application/gzip")
@@ -182,10 +181,6 @@ fun SettingScreen() {
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState()),
         ) {
-
-            val context = LocalContext.current
-            val scope = rememberCoroutineScope()
-            val prefs = APApplication.sharedPreferences
 
             // clear key
             if (kPatchReady) {
@@ -239,26 +234,6 @@ fun SettingScreen() {
                     })
             }
 
-            // WebView Debug
-            if (aPatchReady) {
-                var enableWebDebugging by rememberSaveable {
-                    mutableStateOf(
-                        prefs.getBoolean("enable_web_debugging", false)
-                    )
-                }
-                SwitchItem(
-                    icon = Icons.Filled.DeveloperMode,
-                    title = stringResource(id = R.string.enable_web_debugging),
-                    summary = stringResource(id = R.string.enable_web_debugging_summary),
-                    checked = enableWebDebugging
-                ) {
-                    APApplication.sharedPreferences.edit {
-                        putBoolean("enable_web_debugging", it)
-                    }
-                    enableWebDebugging = it
-                }
-            }
-
             // Check Update
             var checkUpdate by rememberSaveable {
                 mutableStateOf(
@@ -276,89 +251,20 @@ fun SettingScreen() {
                 checkUpdate = it
             }
 
-            // Night Mode Follow System
-            var nightFollowSystem by rememberSaveable {
-                mutableStateOf(
-                    prefs.getBoolean("night_mode_follow_sys", true)
-                )
-            }
-            SwitchItem(
-                icon = Icons.Filled.InvertColors,
-                title = stringResource(id = R.string.settings_night_mode_follow_sys),
-                summary = stringResource(id = R.string.settings_night_mode_follow_sys_summary),
-                checked = nightFollowSystem
-            ) {
-                prefs.edit { putBoolean("night_mode_follow_sys", it) }
-                nightFollowSystem = it
-                refreshTheme.value = true
-            }
-
-            // Custom Night Theme Switch
-            if (!nightFollowSystem) {
-                var nightThemeEnabled by rememberSaveable {
-                    mutableStateOf(
-                        prefs.getBoolean("night_mode_enabled", false)
-                    )
-                }
-                SwitchItem(
-                    icon = Icons.Filled.DarkMode,
-                    title = stringResource(id = R.string.settings_night_theme_enabled),
-                    checked = nightThemeEnabled
-                ) {
-                    prefs.edit { putBoolean("night_mode_enabled", it) }
-                    nightThemeEnabled = it
-                    refreshTheme.value = true
-                }
-            }
-
-            // System dynamic color theme
-            val isDynamicColorSupport = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-            if (isDynamicColorSupport) {
-                var useSystemDynamicColor by rememberSaveable {
-                    mutableStateOf(
-                        prefs.getBoolean("use_system_color_theme", true)
-                    )
-                }
-                SwitchItem(
-                    icon = Icons.Filled.ColorLens,
-                    title = stringResource(id = R.string.settings_use_system_color_theme),
-                    summary = stringResource(id = R.string.settings_use_system_color_theme_summary),
-                    checked = useSystemDynamicColor
-                ) {
-                    prefs.edit { putBoolean("use_system_color_theme", it) }
-                    useSystemDynamicColor = it
-                    refreshTheme.value = true
-                }
-
-                if (!useSystemDynamicColor) {
-                    ListItem(headlineContent = {
-                        Text(text = stringResource(id = R.string.settings_custom_color_theme))
-                    }, modifier = Modifier.clickable {
-                        showThemeChooseDialog.value = true
-                    }, supportingContent = {
-                        val colorMode = prefs.getString("custom_color", "blue")
-                        Text(
-                            text = stringResource(colorNameToString(colorMode.toString())),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.outline
-                        )
-                    }, leadingContent = { Icon(Icons.Filled.FormatColorFill, null) })
-
-                }
-            } else {
-                ListItem(headlineContent = {
-                    Text(text = stringResource(id = R.string.settings_custom_color_theme))
-                }, modifier = Modifier.clickable {
-                    showThemeChooseDialog.value = true
-                }, supportingContent = {
-                    val colorMode = prefs.getString("custom_color", "blue")
+            ListItem(
+                leadingContent = { Icon(Icons.Filled.MoreHoriz, null) },
+                headlineContent = { Text(stringResource(id = R.string.settings_more)) },
+                supportingContent = {
                     Text(
-                        text = stringResource(colorNameToString(colorMode.toString())),
+                        text = stringResource(id = R.string.settings_more_summary),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.outline
                     )
-                }, leadingContent = { Icon(Icons.Filled.FormatColorFill, null) })
-            }
+                },
+                modifier = Modifier.clickable {
+                    navigator.navigate(SettingsMoreScreenDestination)
+                }
+            )
 
             // su path
             if (kPatchReady) {
@@ -580,7 +486,7 @@ private fun colorsList(): List<APColor> {
 }
 
 @Composable
-private fun colorNameToString(colorName: String): Int {
+fun colorNameToString(colorName: String): Int {
     return colorsList().find { it.name == colorName }?.nameId ?: R.string.blue_theme
 }
 

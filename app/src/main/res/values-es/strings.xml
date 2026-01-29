@@ -27,7 +27,7 @@
     <string name="patch_set_superkey">Definir superclave</string>
     <string name="home_su_path">Ejecutable «su»</string>
     <string name="apatch_version_update">Versión: %s → %s</string>
-    <string name="home_working">Funcionando 😋</string>
+    <string name="home_working">Funcionando 😋🧊</string>
     <string name="home_patch_next_step">Siguiente paso</string>
     <string name="home_not_installed">Sin instalar</string>
     <string name="home_auth_key_desc">Comenzar tras la certificación</string>

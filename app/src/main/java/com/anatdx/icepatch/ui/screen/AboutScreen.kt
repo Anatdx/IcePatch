@@ -30,6 +30,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.colorResource
@@ -43,6 +44,7 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.anatdx.icepatch.BuildConfig
 import com.anatdx.icepatch.R
 import com.anatdx.icepatch.util.Version
+import com.anatdx.icepatch.ui.theme.TopBarStyle
 
 @Destination<RootGraph>
 @Composable
@@ -50,6 +52,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
     val uriHandler = LocalUriHandler.current
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             TopBar(onBack = dropUnlessResumed { navigator.popBackStack() })
         }
@@ -116,17 +119,6 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                     Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
                     Text(text = stringResource(id = R.string.about_github))
                 }
-
-                FilledTonalButton(
-                    onClick = { uriHandler.openUri("https://t.me/yukisu_chat") }
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.telegram),
-                        contentDescription = null
-                    )
-                    Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
-                    Text(text = stringResource(id = R.string.about_telegram_channel))
-                }
             }
 
             Row(
@@ -134,18 +126,6 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                FilledTonalButton(
-                    onClick = { uriHandler.openUri("https://hosted.weblate.org/engage/APatch") }
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.weblate),
-                        contentDescription = null,
-                        modifier = Modifier.size(ButtonDefaults.IconSize)
-                    )
-                    Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
-                    Text(text = stringResource(id = R.string.about_weblate))
-                }
-
                 FilledTonalButton(
                     onClick = { uriHandler.openUri("https://t.me/yukisu_chat") }
                 ) {
@@ -175,6 +155,34 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                 }
             }
 
+            OutlinedCard(
+                modifier = Modifier.padding(bottom = 30.dp, start = 20.dp, end = 20.dp),
+                shape = RoundedCornerShape(15.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(all = 12.dp)
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.about_credits_title),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = stringResource(id = R.string.about_credits_body),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 6.dp)
+                    )
+                    FilledTonalButton(
+                        onClick = { uriHandler.openUri("https://github.com/ShirkNeko/SukiSU-Ultra") },
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
+                        Text(text = stringResource(id = R.string.about_credits_link))
+                    }
+                }
+            }
+
         }
     }
 }
@@ -189,5 +197,6 @@ private fun TopBar(onBack: () -> Unit = {}) {
                 onClick = onBack
             ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
         },
+        colors = TopBarStyle.topAppBarColors()
     )
 }

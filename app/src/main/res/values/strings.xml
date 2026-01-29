@@ -34,6 +34,20 @@
 
     <string name="settings_check_update">Check for updates</string>
     <string name="settings_check_update_summary">Automatically check for updates when opening the app</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_custom_background_title">Custom background</string>
+    <string name="settings_custom_background">Enable custom background</string>
+    <string name="settings_custom_background_summary">Use a custom image background</string>
+    <string name="settings_pick_background">Choose background image</string>
+    <string name="settings_clear_background">Clear background</string>
+    <string name="settings_custom_background_failed">Failed to set background</string>
+    <string name="settings_background_alpha">Background opacity</string>
+    <string name="settings_background_dim">Background dim</string>
+    <string name="settings_card_alpha">Card opacity</string>
+    <string name="settings_card_dim">Card dim</string>
+    <string name="settings_more">More</string>
+    <string name="settings_more_summary">Appearance and advanced options</string>
+    <string name="settings_developer_options">Developer options</string>
 
     <string name="home_learn_apatch">Learn IcePatch</string>
     <string name="home_click_to_learn_apatch">Learn about the features of IcePatch and how to use</string>
@@ -54,7 +68,7 @@
     <string name="home_install_unknown">Not installed or authenticated</string>
     <string name="home_install_unknown_summary">Click to install</string>
     <string name="home_click_to_install">Click to install</string>
-    <string name="home_working">Working 😋</string>
+    <string name="home_working">Working 😋🧊</string>
 
     <string name="home_installing">Installing</string>
     <string name="home_need_update">New version available</string>
@@ -250,6 +264,9 @@
     <string name="trans_theme">🏳️‍⚧️ Trans Rights! ✨</string>
     <string name="about_app_version">Version %1$s</string>
     <string name="about_app_desc">Kernel root solution with only a stripped kernel image, providing the ability of mounting system module and hooking kernel function.</string>
+    <string name="about_credits_title">Credits</string>
+    <string name="about_credits_body">UI detail styling is inspired by SukiSU-Ultra. This project implements its own style and interactions while acknowledging the original work.</string>
+    <string name="about_credits_link">View SukiSU-Ultra</string>
     <string name="about_github" translatable="false">GitHub</string>
     <string name="about_weblate" translatable="false">Weblate</string>
     <string name="about_telegram_channel">Telegram channel</string>

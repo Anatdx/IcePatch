@@ -32,7 +32,7 @@
     <string name="learn_more">了解更多</string>
     <string name="patch_set_superkey">设置超级密钥</string>
     <string name="settings">设置</string>
-    <string name="home_working">工作中 😋</string>
+    <string name="home_working">工作中 😋🧊</string>
     <string name="home_patch_next_step">下一步</string>
     <string name="home_not_installed">未安装</string>
     <string name="reboot_bootloader">重启至 Bootloader</string>
@@ -171,6 +171,20 @@
     <string name="enable_web_debugging">启用 WebView 调试</string>
     <string name="home_new_apatch_found">发现新版本：%s，单击升级。</string>
     <string name="settings_check_update_summary">应用启动时自动检测更新</string>
+    <string name="settings_appearance">外观</string>
+    <string name="settings_custom_background_title">自定义背景</string>
+    <string name="settings_custom_background">启用自定义背景</string>
+    <string name="settings_custom_background_summary">使用自定义图片背景</string>
+    <string name="settings_pick_background">选择背景图片</string>
+    <string name="settings_clear_background">清除背景</string>
+    <string name="settings_custom_background_failed">设置背景失败</string>
+    <string name="settings_background_alpha">背景透明度</string>
+    <string name="settings_background_dim">背景明暗</string>
+    <string name="settings_card_alpha">卡片透明度</string>
+    <string name="settings_card_dim">卡片明暗</string>
+    <string name="settings_more">更多</string>
+    <string name="settings_more_summary">外观与高级选项</string>
+    <string name="settings_developer_options">开发者选项</string>
     <string name="enable_web_debugging_summary">可用于调试 WebUI，请仅在需要时启用。</string>
     <string name="settings_donot_store_superkey">不存储超级密钥</string>
     <string name="settings_donot_store_superkey_summary">每次打开管理器时验证超级密钥</string>
@@ -214,6 +228,9 @@
     <string name="trans_theme">🏳️‍⚧️ Trans Rights! ✨</string>
     <string name="about_app_version">版本 %1$s</string>
     <string name="about_app_desc">内核级 ROOT 解决方案且无需重新编译内核，同时提供挂载系统模块和 Hook 内核函数的能力。</string>
+    <string name="about_credits_title">致谢</string>
+    <string name="about_credits_body">界面细节风格参考自 SukiSU-Ultra，本项目采用自研实现与交互，尊重并致谢原作者。</string>
+    <string name="about_credits_link">查看 SukiSU-Ultra</string>
     <string name="about_github" translatable="false">GitHub</string>
     <string name="about_weblate" translatable="false">Weblate</string>
     <string name="about_telegram_channel">Telegram 频道</string>

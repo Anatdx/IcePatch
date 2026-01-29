@@ -87,6 +87,7 @@ fun APatchTheme(
     var customColorScheme by remember { mutableStateOf(prefs.getString("custom_color", "blue")) }
 
     val refreshThemeObserver by refreshTheme.observeAsState(false)
+    var backgroundConfig by remember { mutableStateOf(StylePrefs.loadBackground()) }
     if (refreshThemeObserver == true) {
         darkThemeFollowSys = prefs.getBoolean("night_mode_follow_sys", true)
         nightModeEnabled = prefs.getBoolean("night_mode_enabled", false)
@@ -95,6 +96,7 @@ fun APatchTheme(
             true
         ) else false
         customColorScheme = prefs.getString("custom_color", "blue")
+        backgroundConfig = StylePrefs.loadBackground()
         refreshTheme.postValue(false)
     }
 
@@ -104,7 +106,7 @@ fun APatchTheme(
         nightModeEnabled
     }
 
-    val colorScheme = if (!dynamicColor) {
+    val baseScheme = if (!dynamicColor) {
         if (darkTheme) {
             when (customColorScheme) {
                 "amber" -> DarkAmberTheme
@@ -164,9 +166,24 @@ fun APatchTheme(
             else -> LightBlueTheme
         }
     }
+    val colorScheme = if (backgroundConfig.enabled) {
+        baseScheme.copy(
+            background = Color.Transparent,
+            surface = Color.Transparent
+        )
+    } else {
+        baseScheme
+    }
 
+    val systemBarScrim = if (backgroundConfig.enabled) {
+        colorScheme.surface.copy(alpha = 0.6f)
+    } else {
+        Color.Transparent
+    }
     SystemBarStyle(
-        darkMode = darkTheme
+        darkMode = darkTheme,
+        statusBarScrim = systemBarScrim,
+        navigationBarScrim = systemBarScrim
     )
 
     MaterialTheme(
@@ -174,7 +191,12 @@ fun APatchTheme(
         typography = Typography,
         content = {
             MonetColorsProvider.UpdateCss()
-            content()
+            BackgroundLayer(
+                config = backgroundConfig,
+                darkTheme = darkTheme
+            ) {
+                content()
+            }
         }
     )
 }

@@ -9,7 +9,7 @@
     <string name="home_not_installed">Не установлено</string>
     <string name="home_install_unknown">Не установлено или не авторизовано</string>
     <string name="home_click_to_install">Нажмите чтобы установить</string>
-    <string name="home_working">Работает 😋</string>
+    <string name="home_working">Работает 😋🧊</string>
     <string name="home_installing">Установка</string>
     <string name="home_need_update">Доступна новая версия</string>
     <string name="kpatch_version">Версия: %s</string>

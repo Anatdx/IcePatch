@@ -44,6 +44,7 @@ import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -98,6 +99,8 @@ import com.anatdx.icepatch.apApp
 import com.anatdx.icepatch.ui.component.ProvideMenuShape
 import com.anatdx.icepatch.ui.component.WarningCard
 import com.anatdx.icepatch.ui.component.rememberConfirmDialog
+import com.anatdx.icepatch.ui.theme.CardStyleProvider
+import com.anatdx.icepatch.ui.theme.TopBarStyle
 import com.anatdx.icepatch.ui.theme.refreshTheme
 import com.anatdx.icepatch.ui.viewmodel.PatchesViewModel
 import com.anatdx.icepatch.util.LatestVersionInfo
@@ -122,11 +125,14 @@ fun HomeScreen(navigator: DestinationsNavigator) {
         showPatchFloatAction = false
     }
 
-    Scaffold(topBar = {
-        TopBar(onInstallClick = dropUnlessResumed {
-            navigator.navigate(InstallModeSelectScreenDestination)
-        }, navigator, kpState)
-    }) { innerPadding ->
+    Scaffold(
+        containerColor = Color.Transparent,
+        topBar = {
+            TopBar(onInstallClick = dropUnlessResumed {
+                navigator.navigate(InstallModeSelectScreenDestination)
+            }, navigator, kpState)
+        }
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .padding(innerPadding)
@@ -411,9 +417,10 @@ private fun TopBar(
     var showDropdownMoreOptions by remember { mutableStateOf(false) }
     var showDropdownReboot by remember { mutableStateOf(false) }
 
-    TopAppBar(title = {
-        Text(stringResource(R.string.app_name))
-    }, actions = {
+    TopAppBar(
+        title = { Text(stringResource(R.string.app_name)) },
+        colors = TopBarStyle.topAppBarColors(),
+        actions = {
         IconButton(onClick = onInstallClick) {
             Icon(
                 imageVector = Icons.Filled.InstallMobile,
@@ -458,7 +465,7 @@ private fun TopBar(
                             Text(stringResource(R.string.home_more_menu_feedback_or_suggestion))
                         }, onClick = {
                             showDropdownMoreOptions = false
-                            uriHandler.openUri("https://github.com/bmax121/APatch/issues/new/choose")
+                            uriHandler.openUri("https://github.com/Anatdx/IcePatch/issues/new/choose")
                         })
                         DropdownMenuItem(text = {
                             Text(stringResource(R.string.home_more_menu_about))
@@ -470,7 +477,8 @@ private fun TopBar(
                 }
             }
         }
-    })
+        }
+    )
 }
 
 @Composable
@@ -507,16 +515,19 @@ private fun KStatusCard(
         }
     }
 
-    ElevatedCard(
-        onClick = {
+    val cardContainerColor = CardStyleProvider.styledContainerColor(cardBackgroundColor)
+    val cardContentColor = CardStyleProvider.contentColorFor(cardContainerColor)
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = cardContainerColor,
+        contentColor = cardContentColor,
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
+        modifier = Modifier.clickable {
             if (kpState != APApplication.State.KERNELPATCH_INSTALLED) {
                 navigator.navigate(InstallModeSelectScreenDestination)
             }
-        },
-        colors = CardDefaults.elevatedCardColors(containerColor = cardBackgroundColor),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (kpState == APApplication.State.UNKNOWN_STATE) 0.dp else 6.dp
-        )
+        }
     ) {
         Column(
             modifier = Modifier
@@ -664,10 +675,14 @@ private fun KStatusCard(
 
 @Composable
 private fun AStatusCard(apState: APApplication.State) {
-    ElevatedCard(
-        colors = CardDefaults.elevatedCardColors(containerColor = run {
-            MaterialTheme.colorScheme.secondaryContainer
-        })
+    val cardContainer = CardStyleProvider.styledContainerColor(MaterialTheme.colorScheme.surfaceVariant)
+    val cardContent = CardStyleProvider.contentColorFor(cardContainer)
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = cardContainer,
+        contentColor = cardContent,
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp
     ) {
         Column(
             modifier = Modifier
@@ -766,6 +781,22 @@ private fun AStatusCard(apState: APApplication.State) {
                     Column(
                         modifier = Modifier.align(Alignment.CenterVertically)
                     ) {
+                        val buttonColors = when (apState) {
+                            APApplication.State.ANDROIDPATCH_INSTALLED -> ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError
+                            )
+                            APApplication.State.ANDROIDPATCH_NOT_INSTALLED,
+                            APApplication.State.ANDROIDPATCH_NEED_UPDATE -> ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                            APApplication.State.ANDROIDPATCH_UNINSTALLING -> ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            else -> ButtonDefaults.buttonColors()
+                        }
                         Button(onClick = {
                             when (apState) {
                                 APApplication.State.ANDROIDPATCH_NOT_INSTALLED, APApplication.State.ANDROIDPATCH_NEED_UPDATE -> {
@@ -780,7 +811,7 @@ private fun AStatusCard(apState: APApplication.State) {
                                     APApplication.uninstallApatch()
                                 }
                             }
-                        }, content = {
+                        }, colors = buttonColors, content = {
                             when (apState) {
                                 APApplication.State.ANDROIDPATCH_NOT_INSTALLED -> {
                                     Text(text = stringResource(id = R.string.home_ap_cando_install))
@@ -811,12 +842,13 @@ private fun AStatusCard(apState: APApplication.State) {
 fun WarningCard() {
     var show by rememberSaveable { mutableStateOf(apApp.getBackupWarningState()) }
     if (show) {
+        val warningContainer = CardStyleProvider.styledContainerColor(MaterialTheme.colorScheme.error)
         ElevatedCard(
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = 6.dp
-            ), colors = CardDefaults.elevatedCardColors(containerColor = run {
-                MaterialTheme.colorScheme.error
-            })
+            colors = CardDefaults.elevatedCardColors(
+                containerColor = warningContainer,
+                contentColor = MaterialTheme.colorScheme.onError
+            ),
+            elevation = CardStyleProvider.elevatedCardElevation()
         ) {
             Row(
                 modifier = Modifier
@@ -878,7 +910,12 @@ private fun getDeviceInfo(): String {
 
 @Composable
 private fun InfoCard(kpState: APApplication.State, apState: APApplication.State) {
-    ElevatedCard {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
+        shadowElevation = 0.dp,
+        shape = RoundedCornerShape(20.dp)
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -972,12 +1009,17 @@ fun UpdateCard() {
 fun LearnMoreCard() {
     val uriHandler = LocalUriHandler.current
 
-    ElevatedCard {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
+        shadowElevation = 0.dp,
+        shape = RoundedCornerShape(20.dp)
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
-                    uriHandler.openUri("https://apatch.anatdx.com")
+                    uriHandler.openUri("https://icepatch.anatdx.com")
                 }
                 .padding(24.dp), verticalAlignment = Alignment.CenterVertically) {
             Column {

@@ -45,6 +45,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -66,6 +67,7 @@ import com.ramcosta.composedestinations.utils.rememberDestinationsNavigator
 import com.anatdx.icepatch.APApplication
 import com.anatdx.icepatch.ui.screen.BottomBarDestination
 import com.anatdx.icepatch.ui.theme.APatchTheme
+import com.anatdx.icepatch.ui.theme.rememberBackgroundConfig
 import com.anatdx.icepatch.ui.viewmodel.SuperUserViewModel
 import com.anatdx.icepatch.util.ui.LocalSnackbarHost
 import me.zhanghai.android.appiconloader.coil.AppIconFetcher
@@ -216,12 +218,16 @@ class MainActivity : AppCompatActivity() {
 @Composable
 private fun BottomBar(navController: NavHostController, visibleDestinations: Set<BottomBarDestination>) {
     val navigator = navController.rememberDestinationsNavigator()
+    val background = rememberBackgroundConfig()
 
     Crossfade(
         targetState = visibleDestinations,
         label = "BottomBarStateCrossfade"
     ) { visibleDestinations ->
-        NavigationBar(tonalElevation = 8.dp) {
+        NavigationBar(
+            tonalElevation = if (background.enabled) 0.dp else 8.dp,
+            containerColor = if (background.enabled) Color.Transparent else MaterialTheme.colorScheme.surface
+        ) {
             visibleDestinations.forEach { destination ->
                 val isCurrentDestOnBackStack by navController.isRouteOnBackStackAsState(destination.direction)
 

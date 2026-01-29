@@ -78,6 +78,7 @@ Furthermore, we need more volunteers to [contribute to the documentation](https:
 - [KernelPatch](https://github.com/bmax121/KernelPatch/): The core.
 - [Magisk](https://github.com/topjohnwu/Magisk): magiskboot and magiskpolicy.
 - [KernelSU](https://github.com/tiann/KernelSU): App UI, and Magisk module like support.
+- [SukiSU-Ultra](https://github.com/ShirkNeko/SukiSU-Ultra): UI detail styling inspiration.
 
 ## License
 

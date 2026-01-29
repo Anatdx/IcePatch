@@ -153,4 +153,14 @@
     <string name="patch_mode_install_to_next_slot">Mód:Telepítés inaktív helyre (OTA után)</string>
     <string name="settings_donot_store_superkey">Ne mentse a Szuper kulcsot helyileg</string>
     <string name="enable_web_debugging_summary">Nem használható a WebUI hibakereséséhez. Csak akkor engedélyezze ha szüksége van rá.</string>
+    <string name="hide_other_info">OCD switch</string>
+    <string name="hide_other_info_summary">Expand to toggle each info row on the home card</string>
+    <string name="home_info_kp_version">KernelPatch version</string>
+    <string name="home_info_su_path">Su path</string>
+    <string name="home_info_ap_version">APatch version</string>
+    <string name="home_info_device">Device info</string>
+    <string name="home_info_kernel">Kernel</string>
+    <string name="home_info_system">System version</string>
+    <string name="home_info_fingerprint">Fingerprint</string>
+    <string name="home_info_selinux">SELinux status</string>
 </resources>

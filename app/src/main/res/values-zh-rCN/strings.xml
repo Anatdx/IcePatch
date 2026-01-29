@@ -185,6 +185,16 @@
     <string name="settings_more">更多</string>
     <string name="settings_more_summary">外观与高级选项</string>
     <string name="settings_developer_options">开发者选项</string>
+    <string name="hide_other_info">强迫症开关</string>
+    <string name="hide_other_info_summary">展开后可逐项开关首页信息卡片内容</string>
+    <string name="home_info_kp_version">KernelPatch 版本</string>
+    <string name="home_info_su_path">Su 路径</string>
+    <string name="home_info_ap_version">APatch 版本</string>
+    <string name="home_info_device">设备信息</string>
+    <string name="home_info_kernel">内核版本</string>
+    <string name="home_info_system">系统版本</string>
+    <string name="home_info_fingerprint">指纹信息</string>
+    <string name="home_info_selinux">SELinux 状态</string>
     <string name="enable_web_debugging_summary">可用于调试 WebUI，请仅在需要时启用。</string>
     <string name="settings_donot_store_superkey">不存储超级密钥</string>
     <string name="settings_donot_store_superkey_summary">每次打开管理器时验证超级密钥</string>

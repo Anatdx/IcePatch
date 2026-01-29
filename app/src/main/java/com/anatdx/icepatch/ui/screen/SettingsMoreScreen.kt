@@ -25,6 +25,8 @@ import androidx.compose.material.icons.filled.DeveloperMode
 import androidx.compose.material.icons.filled.FormatColorFill
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.InvertColors
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -299,6 +301,114 @@ fun SettingsMoreScreen(navigator: DestinationsNavigator) {
                         refreshTheme.value = true
                     }
                 )
+
+                var hideOtherInfo by rememberSaveable {
+                    mutableStateOf(prefs.getBoolean("is_hide_other_info", false))
+                }
+                SwitchItem(
+                    icon = Icons.Filled.VisibilityOff,
+                    title = stringResource(id = R.string.hide_other_info),
+                    summary = stringResource(id = R.string.hide_other_info_summary),
+                    checked = hideOtherInfo
+                ) {
+                    prefs.edit { putBoolean("is_hide_other_info", it) }
+                    hideOtherInfo = it
+                }
+
+                AnimatedVisibility(visible = hideOtherInfo) {
+                    Column {
+                        val prefKeyPrefix = "home_info_"
+                        var showKpVersion by rememberSaveable {
+                            mutableStateOf(prefs.getBoolean("${prefKeyPrefix}kp_version", true))
+                        }
+                        var showSuPath by rememberSaveable {
+                            mutableStateOf(prefs.getBoolean("${prefKeyPrefix}su_path", true))
+                        }
+                        var showApVersion by rememberSaveable {
+                            mutableStateOf(prefs.getBoolean("${prefKeyPrefix}ap_version", true))
+                        }
+                        var showDevice by rememberSaveable {
+                            mutableStateOf(prefs.getBoolean("${prefKeyPrefix}device", true))
+                        }
+                        var showKernel by rememberSaveable {
+                            mutableStateOf(prefs.getBoolean("${prefKeyPrefix}kernel", true))
+                        }
+                        var showSystem by rememberSaveable {
+                            mutableStateOf(prefs.getBoolean("${prefKeyPrefix}system", true))
+                        }
+                        var showFingerprint by rememberSaveable {
+                            mutableStateOf(prefs.getBoolean("${prefKeyPrefix}fingerprint", true))
+                        }
+                        var showSelinux by rememberSaveable {
+                            mutableStateOf(prefs.getBoolean("${prefKeyPrefix}selinux", true))
+                        }
+
+                        SwitchItem(
+                            icon = Icons.Filled.Info,
+                            title = stringResource(id = R.string.home_info_kp_version),
+                            checked = showKpVersion
+                        ) {
+                            prefs.edit { putBoolean("${prefKeyPrefix}kp_version", it) }
+                            showKpVersion = it
+                        }
+                        SwitchItem(
+                            icon = Icons.Filled.Info,
+                            title = stringResource(id = R.string.home_info_su_path),
+                            checked = showSuPath
+                        ) {
+                            prefs.edit { putBoolean("${prefKeyPrefix}su_path", it) }
+                            showSuPath = it
+                        }
+                        SwitchItem(
+                            icon = Icons.Filled.Info,
+                            title = stringResource(id = R.string.home_info_ap_version),
+                            checked = showApVersion
+                        ) {
+                            prefs.edit { putBoolean("${prefKeyPrefix}ap_version", it) }
+                            showApVersion = it
+                        }
+                        SwitchItem(
+                            icon = Icons.Filled.Info,
+                            title = stringResource(id = R.string.home_info_device),
+                            checked = showDevice
+                        ) {
+                            prefs.edit { putBoolean("${prefKeyPrefix}device", it) }
+                            showDevice = it
+                        }
+                        SwitchItem(
+                            icon = Icons.Filled.Info,
+                            title = stringResource(id = R.string.home_info_kernel),
+                            checked = showKernel
+                        ) {
+                            prefs.edit { putBoolean("${prefKeyPrefix}kernel", it) }
+                            showKernel = it
+                        }
+                        SwitchItem(
+                            icon = Icons.Filled.Info,
+                            title = stringResource(id = R.string.home_info_system),
+                            checked = showSystem
+                        ) {
+                            prefs.edit { putBoolean("${prefKeyPrefix}system", it) }
+                            showSystem = it
+                        }
+                        SwitchItem(
+                            icon = Icons.Filled.Info,
+                            title = stringResource(id = R.string.home_info_fingerprint),
+                            checked = showFingerprint
+                        ) {
+                            prefs.edit { putBoolean("${prefKeyPrefix}fingerprint", it) }
+                            showFingerprint = it
+                        }
+                        SwitchItem(
+                            icon = Icons.Filled.Info,
+                            title = stringResource(id = R.string.home_info_selinux),
+                            checked = showSelinux
+                        ) {
+                            prefs.edit { putBoolean("${prefKeyPrefix}selinux", it) }
+                            showSelinux = it
+                        }
+                    }
+                }
             }
 
             if (aPatchReady && kPatchReady) {

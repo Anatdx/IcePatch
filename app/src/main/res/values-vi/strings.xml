@@ -213,4 +213,14 @@
     <string name="settings_lite_mode_mode_summary">Các hàm APModule có thể gặp lỗi sau khi được bật, nhưng trong một số trường hợp, chúng vẫn có thể tránh bị phát hiện. Cần khởi động lại.</string>
     <string name="settings_force_overlayfs_mode">Buộc sử dụng OverlayFS</string>
     <string name="settings_force_overlayfs_mode_summary">Sử dụng OverlayFS để gắn APModules thay vì Magic Mount khi có hỗ trợ kernel. Cần khởi động lại.</string>
+    <string name="hide_other_info">OCD switch</string>
+    <string name="hide_other_info_summary">Expand to toggle each info row on the home card</string>
+    <string name="home_info_kp_version">KernelPatch version</string>
+    <string name="home_info_su_path">Su path</string>
+    <string name="home_info_ap_version">APatch version</string>
+    <string name="home_info_device">Device info</string>
+    <string name="home_info_kernel">Kernel</string>
+    <string name="home_info_system">System version</string>
+    <string name="home_info_fingerprint">Fingerprint</string>
+    <string name="home_info_selinux">SELinux status</string>
 </resources>

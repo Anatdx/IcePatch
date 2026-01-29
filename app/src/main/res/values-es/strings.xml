@@ -211,4 +211,14 @@
     <string name="settings_lite_mode_mode_summary">Puede que no todas las funciones de los APModules funcionen en este modo, pero se evitan posibles detecciones. Es necesario reiniciar para que surta efecto.</string>
     <string name="settings_force_overlayfs_mode">Forzar el uso de OverlayFS</string>
     <string name="settings_force_overlayfs_mode_summary">Si el kernel lo admite, se utilizará OverlayFS para montar las carpetas de los APModules en vez de Magic Mount. Es necesario reiniciar para que surta efecto.</string>
+    <string name="hide_other_info">OCD switch</string>
+    <string name="hide_other_info_summary">Expand to toggle each info row on the home card</string>
+    <string name="home_info_kp_version">KernelPatch version</string>
+    <string name="home_info_su_path">Su path</string>
+    <string name="home_info_ap_version">APatch version</string>
+    <string name="home_info_device">Device info</string>
+    <string name="home_info_kernel">Kernel</string>
+    <string name="home_info_system">System version</string>
+    <string name="home_info_fingerprint">Fingerprint</string>
+    <string name="home_info_selinux">SELinux status</string>
 </resources>

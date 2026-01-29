@@ -28,10 +28,20 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Healing
 import androidx.compose.material.icons.filled.InstallMobile
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Route
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.SettingsSuggest
+import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
@@ -71,6 +81,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalView
@@ -503,15 +514,15 @@ private fun KStatusCard(
 
     val cardBackgroundColor = when (kpState) {
         APApplication.State.KERNELPATCH_INSTALLED -> {
-            MaterialTheme.colorScheme.primary
+            MaterialTheme.colorScheme.primaryContainer
         }
 
         APApplication.State.KERNELPATCH_NEED_UPDATE, APApplication.State.KERNELPATCH_NEED_REBOOT -> {
-            MaterialTheme.colorScheme.secondary
+            MaterialTheme.colorScheme.secondaryContainer
         }
 
         else -> {
-            MaterialTheme.colorScheme.secondaryContainer
+            MaterialTheme.colorScheme.surfaceVariant
         }
     }
 
@@ -910,6 +921,12 @@ private fun getDeviceInfo(): String {
 
 @Composable
 private fun InfoCard(kpState: APApplication.State, apState: APApplication.State) {
+    val prefs = APApplication.sharedPreferences
+    val hideOtherInfo = prefs.getBoolean("is_hide_other_info", false)
+    fun allow(key: String): Boolean {
+        return !hideOtherInfo || prefs.getBoolean("home_info_$key", true)
+    }
+
     Surface(
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp,
@@ -925,43 +942,119 @@ private fun InfoCard(kpState: APApplication.State, apState: APApplication.State)
             val uname = Os.uname()
 
             @Composable
-            fun InfoCardItem(label: String, content: String) {
+            fun InfoCardItem(
+                label: String,
+                content: String,
+                icon: ImageVector,
+                show: Boolean
+            ) {
+                if (!show) {
+                    return
+                }
                 contents.appendLine(label).appendLine(content).appendLine()
-                Text(text = label, style = MaterialTheme.typography.bodyLarge)
-                Text(text = content, style = MaterialTheme.typography.bodyMedium)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 4.dp),
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Text(
+                            text = content,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
             }
 
             if (kpState != APApplication.State.UNKNOWN_STATE) {
                 InfoCardItem(
-                    stringResource(R.string.home_kpatch_version), Version.installedKPVString()
+                    stringResource(R.string.home_kpatch_version),
+                    Version.installedKPVString(),
+                    Icons.Filled.Healing,
+                    allow("kp_version")
                 )
-
-                Spacer(Modifier.height(16.dp))
-                InfoCardItem(stringResource(R.string.home_su_path), Natives.suPath())
-
-                Spacer(Modifier.height(16.dp))
+                if (allow("kp_version") && allow("su_path")) {
+                    Spacer(Modifier.height(16.dp))
+                }
+                InfoCardItem(
+                    stringResource(R.string.home_su_path),
+                    Natives.suPath(),
+                    Icons.Filled.Security,
+                    allow("su_path")
+                )
+                if (allow("su_path")) {
+                    Spacer(Modifier.height(16.dp))
+                }
             }
 
             if (apState != APApplication.State.UNKNOWN_STATE && apState != APApplication.State.ANDROIDPATCH_NOT_INSTALLED) {
                 InfoCardItem(
-                    stringResource(R.string.home_apatch_version), managerVersion.second.toString()
+                    stringResource(R.string.home_apatch_version),
+                    managerVersion.second.toString(),
+                    Icons.Filled.SettingsSuggest,
+                    allow("ap_version")
                 )
-                Spacer(Modifier.height(16.dp))
+                if (allow("ap_version")) {
+                    Spacer(Modifier.height(16.dp))
+                }
             }
 
-            InfoCardItem(stringResource(R.string.home_device_info), getDeviceInfo())
-
-            Spacer(Modifier.height(16.dp))
-            InfoCardItem(stringResource(R.string.home_kernel), uname.release)
-
-            Spacer(Modifier.height(16.dp))
-            InfoCardItem(stringResource(R.string.home_system_version), getSystemVersion())
-
-            Spacer(Modifier.height(16.dp))
-            InfoCardItem(stringResource(R.string.home_fingerprint), Build.FINGERPRINT)
-
-            Spacer(Modifier.height(16.dp))
-            InfoCardItem(stringResource(R.string.home_selinux_status), getSELinuxStatus())
+            InfoCardItem(
+                stringResource(R.string.home_device_info),
+                getDeviceInfo(),
+                Icons.Filled.PhoneAndroid,
+                allow("device")
+            )
+            if (allow("device") && allow("kernel")) {
+                Spacer(Modifier.height(16.dp))
+            }
+            InfoCardItem(
+                stringResource(R.string.home_kernel),
+                uname.release,
+                Icons.Filled.Memory,
+                allow("kernel")
+            )
+            if (allow("kernel") && allow("system")) {
+                Spacer(Modifier.height(16.dp))
+            }
+            InfoCardItem(
+                stringResource(R.string.home_system_version),
+                getSystemVersion(),
+                Icons.Filled.Android,
+                allow("system")
+            )
+            if (allow("system") && allow("fingerprint")) {
+                Spacer(Modifier.height(16.dp))
+            }
+            InfoCardItem(
+                stringResource(R.string.home_fingerprint),
+                Build.FINGERPRINT,
+                Icons.Filled.Fingerprint,
+                allow("fingerprint")
+            )
+            if (allow("fingerprint") && allow("selinux")) {
+                Spacer(Modifier.height(16.dp))
+            }
+            InfoCardItem(
+                stringResource(R.string.home_selinux_status),
+                getSELinuxStatus(),
+                Icons.Filled.Lock,
+                allow("selinux")
+            )
 
         }
     }

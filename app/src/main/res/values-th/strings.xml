@@ -207,4 +207,14 @@
     <string name="amber_theme">ธีมสีเหลือง</string>
     <string name="deep_orange_theme">ธีมสีส้มเข้ม</string>
     <string name="home_dialog_auth_fail_content">ไม่สามารถตรวจสอบสิทธิ์ซูเปอร์คีย์ได้ ดังนั้น IcePatch จึงไม่สามารถทำงานได้อย่างถูกต้อง\n\nต่อไปนี้คือสาเหตุที่เป็นไปได้บางประการที่ทำให้การตรวจสอบสิทธิ์ล้มเหลว:\n\n1. คุณไม่ได้รีเซ็ตการบูตด้วย KernelPatch\n\n2. รีเซ็ตการบูตที่เนิ่มใหม่แล้วไม่ได้ถูกต้อง\n\n3. ซูเปอร์คีย์ไม่ถูกต้อง\n\n4. อุปกรณ์ของคุณไม่รองรับ IcePatch และ KernelPatch\n\nโปรดตรวจสอบและลองอีกครั้ง หากยังคงมีปัญหาอยู่ คุณสามารถถามคำถามได้เสมอที่หน้าปัญหาของที่เก็บข้อมูลอย่างเป็นทางการ</string>
+    <string name="hide_other_info">OCD switch</string>
+    <string name="hide_other_info_summary">Expand to toggle each info row on the home card</string>
+    <string name="home_info_kp_version">KernelPatch version</string>
+    <string name="home_info_su_path">Su path</string>
+    <string name="home_info_ap_version">APatch version</string>
+    <string name="home_info_device">Device info</string>
+    <string name="home_info_kernel">Kernel</string>
+    <string name="home_info_system">System version</string>
+    <string name="home_info_fingerprint">Fingerprint</string>
+    <string name="home_info_selinux">SELinux status</string>
 </resources>

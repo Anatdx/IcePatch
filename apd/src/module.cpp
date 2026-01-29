@@ -22,6 +22,14 @@
 #include <limits.h>
 #include <sstream>
 
+#ifdef APD_USE_LUA
+extern "C" {
+#include "lauxlib.h"
+#include "lua.h"
+#include "lualib.h"
+}
+#endif
+
 namespace apd {
 
 namespace {
@@ -119,12 +127,48 @@ std::string FindLuaInterpreter() {
   return "";
 }
 
+#ifdef APD_USE_LUA
+bool RunLuaString(const std::string& script, bool wait) {
+  auto run = [&]() -> bool {
+    lua_State* L = luaL_newstate();
+    if (!L) {
+      return false;
+    }
+    luaL_openlibs(L);
+    int rc = luaL_loadstring(L, script.c_str());
+    if (rc == LUA_OK) {
+      rc = lua_pcall(L, 0, 0, 0);
+    }
+    if (rc != LUA_OK) {
+      const char* err = lua_tostring(L, -1);
+      LOGW("lua error: %s", err ? err : "unknown");
+    }
+    lua_close(L);
+    return rc == LUA_OK;
+  };
+
+  if (!wait) {
+    pid_t pid = fork();
+    if (pid < 0) {
+      return false;
+    }
+    if (pid == 0) {
+      _exit(run() ? 0 : 1);
+    }
+    return true;
+  }
+  return run();
+}
+#endif
+
 bool ExecScript(const std::string& path, bool wait) {
   pid_t pid = fork();
   if (pid < 0) {
     return false;
   }
   if (pid == 0) {
+    setpgid(0, 0);
+    SwitchCgroups();
     setenv("ASH_STANDALONE", "1", 1);
     setenv("APATCH", "true", 1);
     setenv("APATCH_VER", kVersionName, 1);
@@ -147,11 +191,13 @@ bool ExecScript(const std::string& path, bool wait) {
 
 bool RunLuaScript(const std::string& module_id, const std::string& function, bool on_each_module,
                   const std::string& arg, bool wait) {
+#ifndef APD_USE_LUA
   std::string lua = FindLuaInterpreter();
   if (lua.empty()) {
     LOGW("lua interpreter not found");
     return false;
   }
+#endif
 
   EnsureDirExists("/data/adb/config");
 
@@ -205,6 +251,9 @@ bool RunLuaScript(const std::string& module_id, const std::string& function, boo
     script += "f()\n";
   }
 
+#ifdef APD_USE_LUA
+  return RunLuaString(script, wait);
+#else
   std::string runner = "/data/adb/ap/.apd_lua_runner.lua";
   if (!WriteFile(runner, script, false)) {
     LOGW("write lua runner failed");
@@ -216,6 +265,7 @@ bool RunLuaScript(const std::string& module_id, const std::string& function, boo
     return res.exit_code == 0;
   }
   return true;
+#endif
 }
 
 bool ForeachModule(ModuleType type, const std::function<bool(const std::string&)>& fn) {
@@ -344,7 +394,6 @@ bool InstallModule(const std::string& zip) {
       std::string(kInstallerContent) + "\ninstall_module\nexit 0\n");
   setenv("OUTFD", "1", 1);
   setenv("ZIPFILE", real_zip_path, 1);
-  setenv("BOOTMODE", "true", 1);
   setenv("ASH_STANDALONE", "1", 1);
   setenv("APATCH", "true", 1);
   setenv("APATCH_VER", kVersionName, 1);

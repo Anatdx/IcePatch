@@ -13,6 +13,7 @@ struct SuProfile {
 };
 
 long ScSuGetSafemode(const std::string& key);
+long ScSu(const std::string& key, const SuProfile& profile);
 long ScSuGrantUid(const std::string& key, const SuProfile& profile);
 long ScSuRevokeUid(const std::string& key, int uid);
 long ScSuResetPath(const std::string& key, const std::string& path);

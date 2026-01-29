@@ -23,6 +23,14 @@ bool EndsWith(const std::string& value, const std::string& suffix) {
   return value.compare(value.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
 
+std::string Basename(const std::string& path) {
+  size_t pos = path.find_last_of('/');
+  if (pos == std::string::npos) {
+    return path;
+  }
+  return path.substr(pos + 1);
+}
+
 void PrintUsage() {
   const char* usage =
       "Usage:\n"
@@ -56,11 +64,8 @@ int RunCli(int argc, char** argv) {
       return 0;
     }
     if (arg == "-V" || arg == "--version") {
-      std::fprintf(stdout, "%s\n", kVersionCode);
-      return 0;
-    }
-    if (arg == "-v") {
-      std::fprintf(stdout, "%s:IcePatch\n", kVersionName);
+      std::string name = Basename(argv[0] ? argv[0] : "apd");
+      std::fprintf(stdout, "%s %s\n", name.c_str(), kVersionCode);
       return 0;
     }
   }

@@ -52,6 +52,25 @@ int RootShell(int argc, char** argv) {
   std::vector<std::string> free_args;
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
+    if (arg == "-mm") {
+      mount_master = true;
+      continue;
+    }
+    if (arg == "-cn") {
+      no_pty = true;
+      if (i + 1 < argc) {
+        std::string joined;
+        for (int j = i + 1; j < argc; ++j) {
+          if (!joined.empty()) {
+            joined.push_back(' ');
+          }
+          joined += argv[j];
+        }
+        command = joined;
+        break;
+      }
+      continue;
+    }
     if (arg == "-h" || arg == "--help") {
       show_help = true;
     } else if (arg == "-v" || arg == "--version") {

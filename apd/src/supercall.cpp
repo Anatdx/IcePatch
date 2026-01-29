@@ -79,6 +79,13 @@ long ScSuGetSafemode(const std::string& key) {
   return syscall(kSupercallNr, key.c_str(), VerAndCmd(kSupercallSuGetSafemode));
 }
 
+long ScSu(const std::string& key, const SuProfile& profile) {
+  if (key.empty()) {
+    return -EINVAL;
+  }
+  return syscall(kSupercallNr, key.c_str(), VerAndCmd(kSupercallSu), &profile);
+}
+
 long ScSuGrantUid(const std::string& key, const SuProfile& profile) {
   if (key.empty()) {
     return -EINVAL;
@@ -193,7 +200,11 @@ void PrivilegeApdProfile(const std::string& key) {
   profile.to_uid = 0;
   const char* sctx = "u:r:magisk:s0";
   std::memcpy(profile.scontext, sctx, std::strlen(sctx));
-  long result = ScSuGrantUid(key, profile);
+  long result = ScSu(key, profile);
+  if (result != 0) {
+    LOGW("[PrivilegeApdProfile] ScSu failed, fallback to GrantUid: %ld", result);
+    result = ScSuGrantUid(key, profile);
+  }
   LOGI("[PrivilegeApdProfile] result=%ld", result);
 }
 

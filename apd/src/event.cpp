@@ -85,6 +85,25 @@ bool OnPostDataFs(const std::string& superkey) {
   ExecCommand({"/system/bin/sh", "-c", dmesg_cmd}, false);
 
   EnsureDirExists(kLogDir);
+
+  const char* kpver = std::getenv("KERNELPATCH_VERSION");
+  if (kpver && kpver[0] != '\0') {
+    std::printf("KERNELPATCH_VERSION: %s\n", kpver);
+  } else {
+    std::printf("KERNELPATCH_VERSION not found\n");
+  }
+  const char* kver = std::getenv("KERNEL_VERSION");
+  if (kver && kver[0] != '\0') {
+    std::printf("KERNEL_VERSION: %s\n", kver);
+  } else {
+    std::printf("KERNEL_VERSION not found\n");
+  }
+
+  bool safe_mode = IsSafeMode(superkey);
+  if (!safe_mode) {
+    ExecCommonScripts("post-fs-data.d", true);
+  }
+
   EnsureBinaries();
 
   if (DirExists(kModuleUpdateDir)) {
@@ -92,13 +111,11 @@ bool OnPostDataFs(const std::string& superkey) {
     ExecCommand({"/system/bin/sh", "-c", std::string("rm -rf ") + kModuleUpdateDir});
   }
 
-  if (IsSafeMode(superkey)) {
+  if (safe_mode) {
     LOGW("safe mode, skip post-fs-data scripts and disable all modules!");
     DisableAllModules();
     return true;
   }
-
-  ExecCommonScripts("post-fs-data.d", true);
   PruneModules();
   Restorecon();
   LoadSepolicyRule();
@@ -113,12 +130,14 @@ bool OnPostDataFs(const std::string& superkey) {
 
   RunStage("post-mount", superkey, true);
   chdir("/");
+
   return true;
 }
 
 bool OnServices(const std::string& superkey) {
   LOGI("on_services triggered!");
-  return RunStage("service", superkey, false);
+  RunStage("service", superkey, false);
+  return true;
 }
 
 bool OnBootCompleted(const std::string& superkey) {

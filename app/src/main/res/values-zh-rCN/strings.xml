@@ -195,6 +195,9 @@
     <string name="home_info_system">系统版本</string>
     <string name="home_info_fingerprint">指纹信息</string>
     <string name="home_info_selinux">SELinux 状态</string>
+    <string name="signature_warning_title">签名不一致</string>
+    <string name="signature_warning_message">应用签名与官方版本不一致，您可能在使用经篡改的 IcePatch。</string>
+    <string name="signature_warning_confirm">我知道了</string>
     <string name="enable_web_debugging_summary">可用于调试 WebUI，请仅在需要时启用。</string>
     <string name="settings_donot_store_superkey">不存储超级密钥</string>
     <string name="settings_donot_store_superkey_summary">每次打开管理器时验证超级密钥</string>

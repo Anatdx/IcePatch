@@ -255,16 +255,19 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
             exitProcess(0)
         }
 
+        sharedPreferences = getSharedPreferences(SP_NAME, Context.MODE_PRIVATE)
+        APatchKeyHelper.setSharedPreferences(sharedPreferences)
+
         if (!BuildConfig.DEBUG && !verifyAppSignature("7/inu+nwxYH6Qu7K6ZrN0wNX5iupBULKynGlWKFqh80=")) {
             Log.e(TAG, "Signature verification failed; continuing to avoid startup exit.")
-            Toast.makeText(applicationContext, "签名校验失败，已跳过", Toast.LENGTH_LONG).show()
+            sharedPreferences.edit {
+                putBoolean("signature_invalid_warning", true)
+            }
         }
 
         // TODO: We can't totally protect superkey from be stolen by root or LSPosed-like injection tools in user space, the only way is don't use superkey,
         // TODO: 1. make me root by kernel
         // TODO: 2. remove all usage of superkey
-        sharedPreferences = getSharedPreferences(SP_NAME, Context.MODE_PRIVATE)
-        APatchKeyHelper.setSharedPreferences(sharedPreferences)
         superKey = APatchKeyHelper.readSPSuperKey()
 
         okhttpClient =

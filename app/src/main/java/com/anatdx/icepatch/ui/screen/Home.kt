@@ -131,6 +131,10 @@ fun HomeScreen(navigator: DestinationsNavigator) {
 
     val kpState by APApplication.kpStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     val apState by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
+    val appPrefs = APApplication.sharedPreferences
+    var showSignatureWarning by remember {
+        mutableStateOf(appPrefs.getBoolean("signature_invalid_warning", false))
+    }
 
     if (kpState != APApplication.State.UNKNOWN_STATE) {
         showPatchFloatAction = false
@@ -152,7 +156,18 @@ fun HomeScreen(navigator: DestinationsNavigator) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Spacer(Modifier.height(0.dp))
-            WarningCard()
+            if (showSignatureWarning) {
+                WarningCard(
+                    message = stringResource(id = R.string.signature_warning_message),
+                    onClose = {
+                        showSignatureWarning = false
+                        appPrefs.edit {
+                            putBoolean("signature_invalid_warning", false)
+                        }
+                    }
+                )
+            }
+            BackupWarningCard()
             KStatusCard(kpState, apState, navigator)
             if (kpState != APApplication.State.UNKNOWN_STATE && apState != APApplication.State.ANDROIDPATCH_INSTALLED) {
                 AStatusCard(apState)
@@ -850,7 +865,7 @@ private fun AStatusCard(apState: APApplication.State) {
 
 
 @Composable
-fun WarningCard() {
+fun BackupWarningCard() {
     var show by rememberSaveable { mutableStateOf(apApp.getBackupWarningState()) }
     if (show) {
         val warningContainer = CardStyleProvider.styledContainerColor(MaterialTheme.colorScheme.error)

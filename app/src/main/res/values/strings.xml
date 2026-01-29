@@ -58,6 +58,9 @@
     <string name="home_info_system">System version</string>
     <string name="home_info_fingerprint">Fingerprint</string>
     <string name="home_info_selinux">SELinux status</string>
+    <string name="signature_warning_title">Signature mismatch</string>
+    <string name="signature_warning_message">The app signature does not match the official release. You may be using a tampered IcePatch.</string>
+    <string name="signature_warning_confirm">I understand</string>
 
     <string name="home_learn_apatch">Learn IcePatch</string>
     <string name="home_click_to_learn_apatch">Learn about the features of IcePatch and how to use</string>

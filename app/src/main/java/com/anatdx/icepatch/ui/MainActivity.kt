@@ -18,6 +18,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -176,24 +177,33 @@ class MainActivity : AppCompatActivity() {
                                     modifier = Modifier.windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top)),
                                     visibleDestinations = visibleDestinations
                                 )
-                                DestinationsNavHost(
+                                Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
+                                        .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start))
+                                ) {
+                                    DestinationsNavHost(
+                                        navGraph = NavGraphs.root,
+                                        navController = navController,
+                                        engine = rememberNavHostEngine(navHostContentAlignment = Alignment.TopCenter),
+                                        defaultTransitions = defaultTransitions
+                                    )
+                                }
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(innerPadding)
+                                    .consumeWindowInsets(innerPadding)
+                            ) {
+                                DestinationsNavHost(
                                     navGraph = NavGraphs.root,
                                     navController = navController,
                                     engine = rememberNavHostEngine(navHostContentAlignment = Alignment.TopCenter),
                                     defaultTransitions = defaultTransitions
                                 )
                             }
-                        } else {
-                            DestinationsNavHost(
-                                modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding),
-                                navGraph = NavGraphs.root,
-                                navController = navController,
-                                engine = rememberNavHostEngine(navHostContentAlignment = Alignment.TopCenter),
-                                defaultTransitions = defaultTransitions
-                            )
                         }
                     }
                 }
@@ -214,6 +224,7 @@ class MainActivity : AppCompatActivity() {
         isLoading = false
     }
 }
+
 
 @Composable
 private fun BottomBar(navController: NavHostController, visibleDestinations: Set<BottomBarDestination>) {

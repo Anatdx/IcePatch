@@ -30,4 +30,25 @@
     <string name="home_info_system">System version</string>
     <string name="home_info_fingerprint">Fingerprint</string>
     <string name="home_info_selinux">SELinux status</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_custom_background_title">Custom background</string>
+    <string name="settings_custom_background">Enable custom background</string>
+    <string name="settings_custom_background_summary">Use a custom image background</string>
+    <string name="settings_pick_background">Choose background image</string>
+    <string name="settings_clear_background">Clear background</string>
+    <string name="settings_custom_background_failed">Failed to set background</string>
+    <string name="settings_background_alpha">Background opacity</string>
+    <string name="settings_background_dim">Background dim</string>
+    <string name="settings_card_alpha">Card opacity</string>
+    <string name="settings_card_dim">Card dim</string>
+    <string name="settings_more">More</string>
+    <string name="settings_more_summary">Appearance and advanced options</string>
+    <string name="settings_developer_options">Developer options</string>
+    <string name="signature_warning_title">Signature mismatch</string>
+    <string name="signature_warning_message">The app signature does not match the official release. You may be using a tampered IcePatch.</string>
+    <string name="signature_warning_confirm">I understand</string>
+    <string name="about_credits_title">Credits</string>
+    <string name="about_credits_body">UI detail styling is inspired by SukiSU-Ultra. This project implements its own style and interactions while acknowledging the original work.</string>
+    <string name="about_credits_link">View SukiSU-Ultra</string>
+    <string name="trans_theme">🏳️‍⚧️ Trans Rights! ✨</string>
 </resources>

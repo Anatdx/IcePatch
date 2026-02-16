@@ -111,7 +111,7 @@ class MainActivity : AppCompatActivity() {
             APApplication.superKey = key
             Log.d(tag, "superkey injected via intent (len=${key.length})")
             // Emit a quick diag to logcat for KP validation.
-            runCatching { Log.d(tag, "kp diag:\n" + Natives.diag()) }
+            runCatching { Log.d(tag, "kp nativeReady=" + Natives.nativeReady(key)) }
         }
 
         setContent {

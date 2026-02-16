@@ -1,7 +1,9 @@
 package com.anatdx.icepatch.ui
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.res.Configuration
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -38,14 +40,17 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,17 +71,28 @@ import com.ramcosta.composedestinations.rememberNavHostEngine
 import com.ramcosta.composedestinations.utils.isRouteOnBackStackAsState
 import com.ramcosta.composedestinations.utils.rememberDestinationsNavigator
 import com.anatdx.icepatch.APApplication
+import android.util.Log
+import com.anatdx.icepatch.Natives
+import com.anatdx.icepatch.R
+import com.anatdx.icepatch.ui.component.ModuleInstallConfirmDialog
 import com.anatdx.icepatch.ui.screen.BottomBarDestination
 import com.anatdx.icepatch.ui.theme.APatchTheme
 import com.anatdx.icepatch.ui.theme.rememberBackgroundConfig
 import com.anatdx.icepatch.ui.viewmodel.SuperUserViewModel
+import com.ramcosta.composedestinations.generated.destinations.InstallScreenDestination
+import com.anatdx.icepatch.ui.screen.MODULE_TYPE
+import com.anatdx.icepatch.util.ModuleZipInfo
+import com.anatdx.icepatch.util.ZipModuleDetector
 import com.anatdx.icepatch.util.ui.LocalSnackbarHost
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import me.zhanghai.android.appiconloader.coil.AppIconFetcher
 import me.zhanghai.android.appiconloader.coil.AppIconKeyer
 
 class MainActivity : AppCompatActivity() {
 
     private var isLoading = true
+    private val tag = "MainActivity"
 
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -90,11 +106,49 @@ class MainActivity : AppCompatActivity() {
 
         super.onCreate(savedInstanceState)
 
+        // For testing / automation: allow passing SuperKey via intent extra.
+        intent?.getStringExtra("superkey")?.takeIf { it.isNotBlank() }?.let { key ->
+            APApplication.superKey = key
+            Log.d(tag, "superkey injected via intent (len=${key.length})")
+            // Emit a quick diag to logcat for KP validation.
+            runCatching { Log.d(tag, "kp diag:\n" + Natives.diag()) }
+        }
+
         setContent {
             APatchTheme {
                 val navController = rememberNavController()
+                val navigator = navController.rememberDestinationsNavigator()
                 val snackBarHostState = remember { SnackbarHostState() }
                 val configuration = LocalConfiguration.current
+
+                var showModuleInstallDialog by remember { mutableStateOf(false) }
+                var pendingModules by remember { mutableStateOf<List<ModuleZipInfo>>(emptyList()) }
+
+                val zipUris = remember(intent) {
+                    when (intent?.action) {
+                        Intent.ACTION_SEND -> {
+                            @Suppress("DEPRECATION")
+                            val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+                            } else {
+                                intent.getParcelableExtra(Intent.EXTRA_STREAM)
+                            }
+                            uri?.let { listOf(it) } ?: emptyList()
+                        }
+                        Intent.ACTION_SEND_MULTIPLE -> {
+                            @Suppress("DEPRECATION")
+                            val uris = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
+                            } else {
+                                intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM)
+                            }
+                            uris ?: emptyList()
+                        }
+                        else -> {
+                            intent?.data?.let { listOf(it) } ?: emptyList()
+                        }
+                    }
+                }
                 val bottomBarRoutes = remember {
                     BottomBarDestination.entries.map { it.direction.route }.toSet()
                 }
@@ -159,7 +213,40 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
+                LaunchedEffect(zipUris) {
+                    if (zipUris.isNotEmpty()) {
+                        val modules = ZipModuleDetector.detectModuleZips(this@MainActivity, zipUris)
+                        if (modules.isNotEmpty()) {
+                            pendingModules = modules
+                            showModuleInstallDialog = true
+                        } else {
+                            lifecycleScope.launch {
+                                snackBarHostState.showSnackbar(
+                                    getString(R.string.zip_unsupported_format),
+                                    withDismissAction = true
+                                )
+                            }
+                        }
+                    }
+                }
+
+                ModuleInstallConfirmDialog(
+                    show = showModuleInstallDialog,
+                    modules = pendingModules,
+                    onConfirm = { modules ->
+                        showModuleInstallDialog = false
+                        val first = modules.firstOrNull() ?: return@ModuleInstallConfirmDialog
+                        navigator.navigate(InstallScreenDestination(first.uri, MODULE_TYPE.APM))
+                        pendingModules = emptyList()
+                    },
+                    onDismiss = {
+                        showModuleInstallDialog = false
+                        pendingModules = emptyList()
+                    }
+                )
+
                 Scaffold(
+                    snackbarHost = { SnackbarHost(hostState = snackBarHostState) },
                     bottomBar = {
                         if (configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
                             BottomBar(navController, visibleDestinations)

@@ -197,6 +197,12 @@
     <string name="apm_start_downloading">Start downloading: %s</string>
     <string name="apm_new_version_available">New version %s is available, click to upgrade.</string>
 
+    <string name="zip_module_unknown">Unknown module</string>
+    <string name="zip_install_confirm_title">Install module?</string>
+    <string name="zip_install_confirm_title_multi">Install %d modules?</string>
+    <string name="zip_install_confirm_btn">Install</string>
+    <string name="zip_unsupported_format">Unsupported file format. Only APM/Magisk module packages are supported.</string>
+
     <string name="warning_of_meta_module_title">Require Meta module</string>
     <string name="warning_of_meta_module_summary">This module want to mount /system, meta module will handle that. Otherwise, it might not work.</string>
     <string name="meta_module_disabled">module not mounted, because metamodule disabled</string>

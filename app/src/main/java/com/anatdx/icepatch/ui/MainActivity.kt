@@ -103,7 +103,7 @@ class MainActivity : AppCompatActivity() {
     var latestIntent by mutableStateOf<Intent?>(null)
         private set
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         latestIntent = intent

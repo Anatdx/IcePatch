@@ -99,8 +99,19 @@ class MainActivity : AppCompatActivity() {
     private var isLoading = true
     private val tag = "MainActivity"
 
+    /** 用于 Composable 观察；onNewIntent 时更新，以便分享到已打开的 app 时能处理新 intent */
+    var latestIntent by mutableStateOf<Intent?>(null)
+        private set
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        latestIntent = intent
+    }
+
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
+        latestIntent = intent
 
         installSplashScreen().setKeepOnScreenCondition { isLoading }
 
@@ -132,28 +143,29 @@ class MainActivity : AppCompatActivity() {
                 var pendingKpmInfo by remember { mutableStateOf<KpmInfo?>(null) }
                 var intentHandled by remember { mutableStateOf(false) }
 
-                val incomingUris = remember(intent) {
-                    when (intent?.action) {
+                val currentIntent = latestIntent
+                val incomingUris = remember(currentIntent) {
+                    when (currentIntent?.action) {
                         Intent.ACTION_SEND -> {
                             @Suppress("DEPRECATION")
                             val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+                                currentIntent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
                             } else {
-                                intent.getParcelableExtra(Intent.EXTRA_STREAM)
+                                currentIntent.getParcelableExtra(Intent.EXTRA_STREAM)
                             }
                             uri?.let { listOf(it) } ?: emptyList()
                         }
                         Intent.ACTION_SEND_MULTIPLE -> {
                             @Suppress("DEPRECATION")
                             val uris = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
+                                currentIntent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
                             } else {
-                                intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM)
+                                currentIntent.getParcelableArrayListExtra(Intent.EXTRA_STREAM)
                             }
                             uris ?: emptyList()
                         }
                         else -> {
-                            intent?.data?.let { listOf(it) } ?: emptyList()
+                            currentIntent?.data?.let { listOf(it) } ?: emptyList()
                         }
                     }
                 }
@@ -227,6 +239,11 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
+                // 新 intent（例如再次分享）时重置已处理标记，以便能处理新分享
+                LaunchedEffect(currentIntent) {
+                    intentHandled = false
+                }
+
                 LaunchedEffect(kpmUris, zipUris, intentHandled) {
                     if (intentHandled) return@LaunchedEffect
                     if (kpmUris.isNotEmpty()) {
@@ -246,8 +263,17 @@ class MainActivity : AppCompatActivity() {
                         return@LaunchedEffect
                     }
                     if (zipUris.isNotEmpty()) {
-                        val modules = ZipModuleDetector.detectModuleZips(this@MainActivity, zipUris)
                         intentHandled = true
+                        // 分享进来的单文件可能是 content Uri，lastPathSegment 未必带 .kpm，先尝试按 KPM 解析
+                        if (zipUris.size == 1) {
+                            val kpmInfo = KpmInfoReader.readKpmInfo(this@MainActivity, zipUris.first())
+                            if (kpmInfo != null) {
+                                pendingKpmInfo = kpmInfo
+                                showKpmInstallDialog = true
+                                return@LaunchedEffect
+                            }
+                        }
+                        val modules = ZipModuleDetector.detectModuleZips(this@MainActivity, zipUris)
                         if (modules.isNotEmpty()) {
                             pendingModules = modules
                             showModuleInstallDialog = true

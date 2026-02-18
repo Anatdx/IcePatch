@@ -127,7 +127,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 FilledTonalButton(
-                    onClick = { uriHandler.openUri("https://t.me/yukisu_chat") }
+                    onClick = { uriHandler.openUri("https://t.me/manosaba") }
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.telegram),

@@ -4,7 +4,7 @@
 <h1 align="center">IcePatch</h1>
 
 [![Latest Release](https://img.shields.io/github/v/release/Anatdx/IcePatch?label=Release&logo=github)](https://github.com/Anatdx/IcePatch/releases/latest)
-[![Group](https://img.shields.io/badge/Follow-Telegram-blue.svg?logo=telegram)](https://t.me/yukisu_chat)
+[![Group](https://img.shields.io/badge/Follow-Telegram-blue.svg?logo=telegram)](https://t.me/manosaba)
 [![GitHub License](https://img.shields.io/github/license/Anatdx/IcePatch?logo=gnu)](/LICENSE)
 
 </div>
@@ -51,7 +51,7 @@ It's worth noting that the documentation is currently not quite complete, and th
 
 ### Discussions
 
-- Telegram Group: [@yukisu_chat](https://t.me/yukisu_chat)
+- Telegram Group: [@manosaba](https://t.me/manosaba)
 
 ### More Information
 

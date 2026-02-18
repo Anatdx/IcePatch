@@ -74,13 +74,18 @@ import com.anatdx.icepatch.APApplication
 import android.util.Log
 import com.anatdx.icepatch.Natives
 import com.anatdx.icepatch.R
+import com.anatdx.icepatch.ui.component.KpmInstallConfirmDialog
 import com.anatdx.icepatch.ui.component.ModuleInstallConfirmDialog
 import com.anatdx.icepatch.ui.screen.BottomBarDestination
 import com.anatdx.icepatch.ui.theme.APatchTheme
 import com.anatdx.icepatch.ui.theme.rememberBackgroundConfig
+import com.anatdx.icepatch.ui.viewmodel.PatchesViewModel
 import com.anatdx.icepatch.ui.viewmodel.SuperUserViewModel
 import com.ramcosta.composedestinations.generated.destinations.InstallScreenDestination
+import com.ramcosta.composedestinations.generated.destinations.PatchesDestination
 import com.anatdx.icepatch.ui.screen.MODULE_TYPE
+import com.anatdx.icepatch.util.KpmInfo
+import com.anatdx.icepatch.util.KpmInfoReader
 import com.anatdx.icepatch.util.ModuleZipInfo
 import com.anatdx.icepatch.util.ZipModuleDetector
 import com.anatdx.icepatch.util.ui.LocalSnackbarHost
@@ -123,8 +128,11 @@ class MainActivity : AppCompatActivity() {
 
                 var showModuleInstallDialog by remember { mutableStateOf(false) }
                 var pendingModules by remember { mutableStateOf<List<ModuleZipInfo>>(emptyList()) }
+                var showKpmInstallDialog by remember { mutableStateOf(false) }
+                var pendingKpmInfo by remember { mutableStateOf<KpmInfo?>(null) }
+                var intentHandled by remember { mutableStateOf(false) }
 
-                val zipUris = remember(intent) {
+                val incomingUris = remember(intent) {
                     when (intent?.action) {
                         Intent.ACTION_SEND -> {
                             @Suppress("DEPRECATION")
@@ -148,6 +156,12 @@ class MainActivity : AppCompatActivity() {
                             intent?.data?.let { listOf(it) } ?: emptyList()
                         }
                     }
+                }
+                val kpmUris = remember(incomingUris) {
+                    incomingUris.filter { it.lastPathSegment.orEmpty().endsWith(".kpm", ignoreCase = true) }
+                }
+                val zipUris = remember(incomingUris) {
+                    incomingUris.filter { !it.lastPathSegment.orEmpty().endsWith(".kpm", ignoreCase = true) }
                 }
                 val bottomBarRoutes = remember {
                     BottomBarDestination.entries.map { it.direction.route }.toSet()
@@ -213,9 +227,27 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                LaunchedEffect(zipUris) {
+                LaunchedEffect(kpmUris, zipUris, intentHandled) {
+                    if (intentHandled) return@LaunchedEffect
+                    if (kpmUris.isNotEmpty()) {
+                        intentHandled = true
+                        val info = KpmInfoReader.readKpmInfo(this@MainActivity, kpmUris.first())
+                        if (info != null) {
+                            pendingKpmInfo = info
+                            showKpmInstallDialog = true
+                        } else {
+                            lifecycleScope.launch {
+                                snackBarHostState.showSnackbar(
+                                    getString(R.string.kpm_unsupported_format),
+                                    withDismissAction = true
+                                )
+                            }
+                        }
+                        return@LaunchedEffect
+                    }
                     if (zipUris.isNotEmpty()) {
                         val modules = ZipModuleDetector.detectModuleZips(this@MainActivity, zipUris)
+                        intentHandled = true
                         if (modules.isNotEmpty()) {
                             pendingModules = modules
                             showModuleInstallDialog = true
@@ -242,6 +274,26 @@ class MainActivity : AppCompatActivity() {
                     onDismiss = {
                         showModuleInstallDialog = false
                         pendingModules = emptyList()
+                    }
+                )
+
+                KpmInstallConfirmDialog(
+                    show = showKpmInstallDialog,
+                    info = pendingKpmInfo,
+                    onInstall = {
+                        val uri = pendingKpmInfo?.uri ?: return@KpmInstallConfirmDialog
+                        showKpmInstallDialog = false
+                        pendingKpmInfo = null
+                        navigator.navigate(InstallScreenDestination(uri, MODULE_TYPE.KPM))
+                    },
+                    onEmbed = {
+                        showKpmInstallDialog = false
+                        pendingKpmInfo = null
+                        navigator.navigate(PatchesDestination(PatchesViewModel.PatchMode.PATCH_ONLY))
+                    },
+                    onDismiss = {
+                        showKpmInstallDialog = false
+                        pendingKpmInfo = null
                     }
                 )
 

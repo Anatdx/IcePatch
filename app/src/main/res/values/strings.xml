@@ -206,7 +206,6 @@
     <string name="kpm_install_confirm_title">Install Kernel Patch Module?</string>
     <string name="kpm_module_unknown">Unknown KPM</string>
     <string name="kpm_label">KPM</string>
-    <string name="kpm_license">License</string>
     <string name="kpm_unsupported_format">Not a valid KPM file (ELF with .kpm.info).</string>
 
     <string name="warning_of_meta_module_title">Require Meta module</string>

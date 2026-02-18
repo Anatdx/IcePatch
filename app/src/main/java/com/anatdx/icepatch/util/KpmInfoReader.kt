@@ -58,7 +58,7 @@ object KpmInfoReader {
 
         // Section header of string table (section names)
         val strTabIdx = eShstrndx.toInt() and 0xffff
-        val strTabOff = eShoff + strTabIdx * SIZEOF_ELF64_SHDR
+        val strTabOff = (eShoff + strTabIdx * SIZEOF_ELF64_SHDR).toInt()
         val strTabOffset = buf.getLong(strTabOff + 24)
         val strTabSize = buf.getLong(strTabOff + 32)
         if (strTabOffset < 0 || strTabOffset + strTabSize > data.size) return null
@@ -67,7 +67,7 @@ object KpmInfoReader {
         var infoOffset = 0L
         var infoSize = 0L
         for (i in 0 until (eShnum.toInt() and 0xffff)) {
-            val shOff = eShoff + i * SIZEOF_ELF64_SHDR
+            val shOff = (eShoff + i * SIZEOF_ELF64_SHDR).toInt()
             val shName = buf.getInt(shOff)
             val shOffset = buf.getLong(shOff + 24)
             val shSize = buf.getLong(shOff + 32)

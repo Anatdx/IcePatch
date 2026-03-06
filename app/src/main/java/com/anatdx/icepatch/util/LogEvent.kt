@@ -17,6 +17,7 @@ fun getBugreportFile(context: Context): File {
 
     val dmesgFile = File(bugreportDir, "dmesg.txt")
     val logcatFile = File(bugreportDir, "logcat.txt")
+    val defconfigFile = File(bugreportDir, "defconfig.gz")
     val tombstonesFile = File(bugreportDir, "tombstones.tar.gz")
     val dropboxFile = File(bugreportDir, "dropbox.tar.gz")
     val pstoreFile = File(bugreportDir, "pstore.tar.gz")
@@ -33,6 +34,7 @@ fun getBugreportFile(context: Context): File {
 
     shell.newJob().add("dmesg > ${dmesgFile.absolutePath}").exec()
     shell.newJob().add("logcat -d > ${logcatFile.absolutePath}").exec()
+    shell.newJob().add("cp /proc/config.gz ${defconfigFile.absolutePath} 2>/dev/null || true").exec()
     shell.newJob().add("tar -czf ${tombstonesFile.absolutePath} -C /data/tombstones .").exec()
     shell.newJob().add("tar -czf ${dropboxFile.absolutePath} -C /data/system/dropbox .").exec()
     shell.newJob().add("tar -czf ${pstoreFile.absolutePath} -C /sys/fs/pstore .").exec()

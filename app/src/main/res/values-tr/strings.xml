@@ -244,4 +244,14 @@
     <string name="about_credits_body">UI detail styling is inspired by SukiSU-Ultra. This project implements its own style and interactions while acknowledging the original work.</string>
     <string name="about_credits_link">View SukiSU-Ultra</string>
     <string name="trans_theme">🏳️‍⚧️ Trans Rights! ✨</string>
+
+    <string name="zip_module_unknown">Bilinmeyen modül</string>
+    <string name="zip_install_confirm_title">Bu sistem modülü yüklensin mi?</string>
+    <string name="zip_install_confirm_title_multi">%d sistem modülü yüklensin mi?</string>
+    <string name="zip_install_confirm_btn">Yükle</string>
+    <string name="zip_unsupported_format">Desteklenmeyen format. Yalnızca APM/Magisk modül paketleri.</string>
+    <string name="kpm_install_confirm_title">Bu çekirdek modülü yüklensin mi?</string>
+    <string name="kpm_module_unknown">Bilinmeyen KPM</string>
+    <string name="kpm_label">KPM</string>
+    <string name="kpm_unsupported_format">Geçerli bir KPM dosyası değil (.kpm.info içeren ELF gerekli).</string>
 </resources>

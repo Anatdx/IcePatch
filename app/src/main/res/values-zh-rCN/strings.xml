@@ -253,4 +253,14 @@
     <string name="crash_handle_title">应用崩溃了…</string>
     <string name="crash_handle_copy">复制崩溃日志</string>
     <string name="crash_handle_copied">崩溃日志已复制到剪贴板。</string>
+
+    <string name="zip_module_unknown">未知模块</string>
+    <string name="zip_install_confirm_title">安装此系统模块？</string>
+    <string name="zip_install_confirm_title_multi">安装以下 %d 个系统模块？</string>
+    <string name="zip_install_confirm_btn">安装</string>
+    <string name="zip_unsupported_format">不支持的文件格式，仅支持 APM/Magisk 模块包。</string>
+    <string name="kpm_install_confirm_title">安装此内核模块？</string>
+    <string name="kpm_module_unknown">未知内核模块</string>
+    <string name="kpm_label">内核模块</string>
+    <string name="kpm_unsupported_format">不是有效的 KPM 文件（需为带 .kpm.info 的 ELF）。</string>
 </resources>

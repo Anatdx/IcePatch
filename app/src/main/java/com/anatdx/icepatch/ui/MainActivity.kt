@@ -153,7 +153,10 @@ class MainActivity : AppCompatActivity() {
                             } else {
                                 currentIntent.getParcelableExtra(Intent.EXTRA_STREAM)
                             }
-                            uri?.let { listOf(it) } ?: emptyList()
+                            uri?.let { listOf(it) }
+                                ?: currentIntent.data?.let { listOf(it) }
+                                ?: (currentIntent.clipData?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.uri)?.let { listOf(it) }
+                                ?: emptyList()
                         }
                         Intent.ACTION_SEND_MULTIPLE -> {
                             @Suppress("DEPRECATION")
@@ -162,10 +165,14 @@ class MainActivity : AppCompatActivity() {
                             } else {
                                 currentIntent.getParcelableArrayListExtra(Intent.EXTRA_STREAM)
                             }
-                            uris ?: emptyList()
+                            uris?.takeIf { it.isNotEmpty() }
+                                ?: (currentIntent.clipData?.let { cd -> (0 until cd.itemCount).mapNotNull { cd.getItemAt(it).uri }.takeIf { it.isNotEmpty() } })
+                                ?: emptyList()
                         }
                         else -> {
-                            currentIntent?.data?.let { listOf(it) } ?: emptyList()
+                            currentIntent?.data?.let { listOf(it) }
+                                ?: (currentIntent?.clipData?.let { cd -> (0 until cd.itemCount).mapNotNull { cd.getItemAt(it).uri } })?.takeIf { it.isNotEmpty() }
+                                ?: emptyList()
                         }
                     }
                 }
@@ -247,7 +254,6 @@ class MainActivity : AppCompatActivity() {
                 LaunchedEffect(kpmUris, zipUris, intentHandled) {
                     if (intentHandled) return@LaunchedEffect
                     if (kpmUris.isNotEmpty()) {
-                        intentHandled = true
                         val info = KpmInfoReader.readKpmInfo(this@MainActivity, kpmUris.first())
                         if (info != null) {
                             pendingKpmInfo = info
@@ -260,16 +266,17 @@ class MainActivity : AppCompatActivity() {
                                 )
                             }
                         }
+                        intentHandled = true
                         return@LaunchedEffect
                     }
                     if (zipUris.isNotEmpty()) {
-                        intentHandled = true
                         // 分享进来的单文件可能是 content Uri，lastPathSegment 未必带 .kpm，先尝试按 KPM 解析
                         if (zipUris.size == 1) {
                             val kpmInfo = KpmInfoReader.readKpmInfo(this@MainActivity, zipUris.first())
                             if (kpmInfo != null) {
                                 pendingKpmInfo = kpmInfo
                                 showKpmInstallDialog = true
+                                intentHandled = true
                                 return@LaunchedEffect
                             }
                         }
@@ -285,6 +292,7 @@ class MainActivity : AppCompatActivity() {
                                 )
                             }
                         }
+                        intentHandled = true
                     }
                 }
 

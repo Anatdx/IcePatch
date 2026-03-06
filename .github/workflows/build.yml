@@ -103,41 +103,6 @@ jobs:
           keyPassword: ${{ secrets.KEY_PASSWORD }}
           zipAlign: true
 
-      - name: Import GPG key
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-        run: |
-          if [ -n "$GPG_PRIVATE_KEY" ]; then
-            echo "$GPG_PRIVATE_KEY" | gpg --batch --import
-            echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
-            gpgconf --kill gpg-agent
-          fi
-
-      - name: GPG sign APKs
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-          GPG_FINGERPRINT: ${{ secrets.GPG_FINGERPRINT }}
-        run: |
-          if [ -z "$GPG_PRIVATE_KEY" ]; then
-            echo "GPG_PRIVATE_KEY not set, skipping."
-            exit 0
-          fi
-          RELEASE_APK="${{ steps.sign_app.outputs.signedReleaseFile }}"
-          DEBUG_APK="${{ steps.sign_debug_app.outputs.signedReleaseFile }}"
-          if [ -n "$GPG_FINGERPRINT" ]; then
-            KEY_ARG="--local-user $GPG_FINGERPRINT"
-          else
-            KEY_ARG=""
-          fi
-          if [ -f "$RELEASE_APK" ]; then
-            gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" $KEY_ARG --detach-sign "$RELEASE_APK"
-          fi
-          if [ -f "$DEBUG_APK" ]; then
-            gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" $KEY_ARG --detach-sign "$DEBUG_APK"
-          fi
-
       - name: Upload mappings
         uses: actions/upload-artifact@v6
         with:
@@ -154,8 +119,6 @@ jobs:
           path: |
             ${{ steps.sign_app.outputs.signedReleaseFile }}
             ${{ steps.sign_debug_app.outputs.signedReleaseFile }}
-            ${{ steps.sign_app.outputs.signedReleaseFile }}.sig
-            ${{ steps.sign_debug_app.outputs.signedReleaseFile }}.sig
 
       - name: Post to channel (apbot)
         if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.ref_type != 'tag' }}

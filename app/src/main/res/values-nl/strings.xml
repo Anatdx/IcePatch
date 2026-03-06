@@ -242,4 +242,14 @@
     <string name="about_credits_body">UI detail styling is inspired by SukiSU-Ultra. This project implements its own style and interactions while acknowledging the original work.</string>
     <string name="about_credits_link">View SukiSU-Ultra</string>
     <string name="trans_theme">🏳️‍⚧️ Trans Rights! ✨</string>
+
+    <string name="zip_module_unknown">Onbekende module</string>
+    <string name="zip_install_confirm_title">Deze systeemmodule installeren?</string>
+    <string name="zip_install_confirm_title_multi">%d systeemmodules installeren?</string>
+    <string name="zip_install_confirm_btn">Installeren</string>
+    <string name="zip_unsupported_format">Niet-ondersteund formaat. Alleen APM/Magisk-modulepakketten.</string>
+    <string name="kpm_install_confirm_title">Deze kernelmodule installeren?</string>
+    <string name="kpm_module_unknown">Onbekende KPM</string>
+    <string name="kpm_label">KPM</string>
+    <string name="kpm_unsupported_format">Ongeldig KPM-bestand (ELF met .kpm.info vereist).</string>
 </resources>

@@ -244,4 +244,14 @@
     <string name="about_credits_body">UI detail styling is inspired by SukiSU-Ultra. This project implements its own style and interactions while acknowledging the original work.</string>
     <string name="about_credits_link">View SukiSU-Ultra</string>
     <string name="trans_theme">🏳️‍⚧️ Trans Rights! ✨</string>
+
+    <string name="zip_module_unknown">Module không xác định</string>
+    <string name="zip_install_confirm_title">Cài đặt module hệ thống này?</string>
+    <string name="zip_install_confirm_title_multi">Cài đặt %d module hệ thống?</string>
+    <string name="zip_install_confirm_btn">Cài đặt</string>
+    <string name="zip_unsupported_format">Định dạng không hỗ trợ. Chỉ gói module APM/Magisk.</string>
+    <string name="kpm_install_confirm_title">Cài đặt module kernel này?</string>
+    <string name="kpm_module_unknown">KPM không xác định</string>
+    <string name="kpm_label">KPM</string>
+    <string name="kpm_unsupported_format">Tệp KPM không hợp lệ (cần ELF có .kpm.info).</string>
 </resources>

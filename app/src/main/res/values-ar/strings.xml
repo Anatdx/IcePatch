@@ -240,4 +240,14 @@
     <string name="about_credits_body">UI detail styling is inspired by SukiSU-Ultra. This project implements its own style and interactions while acknowledging the original work.</string>
     <string name="about_credits_link">View SukiSU-Ultra</string>
     <string name="trans_theme">🏳️‍⚧️ Trans Rights! ✨</string>
+
+    <string name="zip_module_unknown">وحدة غير معروفة</string>
+    <string name="zip_install_confirm_title">تثبيت وحدة النظام هذه؟</string>
+    <string name="zip_install_confirm_title_multi">تثبيت %d وحدة نظام؟</string>
+    <string name="zip_install_confirm_btn">تثبيت</string>
+    <string name="zip_unsupported_format">تنسيق غير مدعوم. حزم وحدات APM/Magisk فقط.</string>
+    <string name="kpm_install_confirm_title">تثبيت وحدة النواة هذه؟</string>
+    <string name="kpm_module_unknown">KPM غير معروف</string>
+    <string name="kpm_label">KPM</string>
+    <string name="kpm_unsupported_format">ملف KPM غير صالح (مطلوب ELF مع .kpm.info).</string>
 </resources>

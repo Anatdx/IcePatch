@@ -241,4 +241,14 @@
     <string name="about_credits_body">UI detail styling is inspired by SukiSU-Ultra. This project implements its own style and interactions while acknowledging the original work.</string>
     <string name="about_credits_link">View SukiSU-Ultra</string>
     <string name="trans_theme">🏳️‍⚧️ Trans Rights! ✨</string>
+
+    <string name="zip_module_unknown">未知模組</string>
+    <string name="zip_install_confirm_title">安裝此系統模組？</string>
+    <string name="zip_install_confirm_title_multi">安裝以下 %d 個系統模組？</string>
+    <string name="zip_install_confirm_btn">安裝</string>
+    <string name="zip_unsupported_format">不支援的檔案格式，僅支援 APM/Magisk 模組包。</string>
+    <string name="kpm_install_confirm_title">安裝此核心模組？</string>
+    <string name="kpm_module_unknown">未知核心模組</string>
+    <string name="kpm_label">核心模組</string>
+    <string name="kpm_unsupported_format">不是有效的 KPM 檔案（需為帶 .kpm.info 的 ELF）。</string>
 </resources>

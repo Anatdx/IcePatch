@@ -238,4 +238,14 @@
     <string name="about_credits_body">UI detail styling is inspired by SukiSU-Ultra. This project implements its own style and interactions while acknowledging the original work.</string>
     <string name="about_credits_link">View SukiSU-Ultra</string>
     <string name="trans_theme">🏳️‍⚧️ Trans Rights! ✨</string>
+
+    <string name="zip_module_unknown">โมดูลไม่ทราบ</string>
+    <string name="zip_install_confirm_title">ติดตั้งโมดูลระบบนี้?</string>
+    <string name="zip_install_confirm_title_multi">ติดตั้งโมดูลระบบ %d รายการ?</string>
+    <string name="zip_install_confirm_btn">ติดตั้ง</string>
+    <string name="zip_unsupported_format">รูปแบบไม่รองรับ มีเฉพาะแพ็กเกจโมดูล APM/Magisk</string>
+    <string name="kpm_install_confirm_title">ติดตั้งโมดูลเคอร์เนลนี้?</string>
+    <string name="kpm_module_unknown">KPM ไม่ทราบ</string>
+    <string name="kpm_label">KPM</string>
+    <string name="kpm_unsupported_format">ไฟล์ KPM ไม่ถูกต้อง (ต้องเป็น ELF ที่มี .kpm.info)</string>
 </resources>

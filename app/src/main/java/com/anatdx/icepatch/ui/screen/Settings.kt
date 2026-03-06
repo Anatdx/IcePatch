@@ -28,6 +28,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Commit
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Engineering
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.MoreHoriz
@@ -99,6 +100,7 @@ import com.anatdx.icepatch.util.setGlobalNamespaceEnabled
 import com.anatdx.icepatch.util.ui.APDialogBlurBehindUtils
 import com.anatdx.icepatch.util.ui.LocalSnackbarHost
 import com.anatdx.icepatch.util.ui.NavigationBarsSpacer
+import com.ramcosta.composedestinations.generated.destinations.AboutScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.SettingsMoreScreenDestination
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -307,6 +309,13 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                 modifier = Modifier.clickable {
                     showLogBottomSheet = true
                 })
+            ListItem(
+                leadingContent = { Icon(Icons.Filled.Info, contentDescription = null) },
+                headlineContent = { Text(stringResource(R.string.home_more_menu_about)) },
+                modifier = Modifier.clickable {
+                    navigator.navigate(AboutScreenDestination)
+                }
+            )
             if (showLogBottomSheet) {
                 ModalBottomSheet(
                     onDismissRequest = { showLogBottomSheet = false },

@@ -143,9 +143,7 @@ fun HomeScreen(navigator: DestinationsNavigator) {
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
-            TopBar(onInstallClick = dropUnlessResumed {
-                navigator.navigate(InstallModeSelectScreenDestination)
-            }, navigator, kpState)
+            TopBar(navigator = navigator, kpState = kpState)
         }
     ) { innerPadding ->
         Column(
@@ -437,23 +435,14 @@ fun RebootDropdownItem(@StringRes id: Int, reason: String = "") {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TopBar(
-    onInstallClick: () -> Unit, navigator: DestinationsNavigator, kpState: APApplication.State
+    navigator: DestinationsNavigator, kpState: APApplication.State
 ) {
-    val uriHandler = LocalUriHandler.current
-    var showDropdownMoreOptions by remember { mutableStateOf(false) }
     var showDropdownReboot by remember { mutableStateOf(false) }
 
     TopAppBar(
         title = { Text(stringResource(R.string.app_name)) },
         colors = TopBarStyle.topAppBarColors(),
         actions = {
-        IconButton(onClick = onInstallClick) {
-            Icon(
-                imageVector = Icons.Filled.InstallMobile,
-                contentDescription = stringResource(id = R.string.mode_select_page_title)
-            )
-        }
-
         if (kpState != APApplication.State.UNKNOWN_STATE) {
             IconButton(onClick = {
                 showDropdownReboot = true
@@ -472,33 +461,6 @@ private fun TopBar(
                         RebootDropdownItem(id = R.string.reboot_bootloader, reason = "bootloader")
                         RebootDropdownItem(id = R.string.reboot_download, reason = "download")
                         RebootDropdownItem(id = R.string.reboot_edl, reason = "edl")
-                    }
-                }
-            }
-        }
-
-        Box {
-            IconButton(onClick = { showDropdownMoreOptions = true }) {
-                Icon(
-                    imageVector = Icons.Filled.MoreVert,
-                    contentDescription = stringResource(id = R.string.settings)
-                )
-                ProvideMenuShape(RoundedCornerShape(10.dp)) {
-                    DropdownMenu(expanded = showDropdownMoreOptions, onDismissRequest = {
-                        showDropdownMoreOptions = false
-                    }) {
-                        DropdownMenuItem(text = {
-                            Text(stringResource(R.string.home_more_menu_feedback_or_suggestion))
-                        }, onClick = {
-                            showDropdownMoreOptions = false
-                            uriHandler.openUri("https://github.com/Anatdx/IcePatch/issues/new/choose")
-                        })
-                        DropdownMenuItem(text = {
-                            Text(stringResource(R.string.home_more_menu_about))
-                        }, onClick = {
-                            navigator.navigate(AboutScreenDestination)
-                            showDropdownMoreOptions = false
-                        })
                     }
                 }
             }
@@ -549,10 +511,8 @@ private fun KStatusCard(
         contentColor = cardContentColor,
         shadowElevation = 0.dp,
         tonalElevation = 0.dp,
-        modifier = Modifier.clickable {
-            if (kpState != APApplication.State.KERNELPATCH_INSTALLED) {
-                navigator.navigate(InstallModeSelectScreenDestination)
-            }
+        modifier = Modifier.clickable(enabled = kpState != APApplication.State.KERNELPATCH_UNINSTALLING) {
+            navigator.navigate(InstallModeSelectScreenDestination)
         }
     ) {
         Column(

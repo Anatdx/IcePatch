@@ -110,7 +110,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 FilledTonalButton(
-                    onClick = { uriHandler.openUri("https://github.com/Anatdx/YukiSU") }
+                    onClick = { uriHandler.openUri("https://github.com/Anatdx/IcePatch") }
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.github),
@@ -118,6 +118,11 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                     )
                     Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
                     Text(text = stringResource(id = R.string.about_github))
+                }
+                FilledTonalButton(
+                    onClick = { uriHandler.openUri("https://github.com/Anatdx/IcePatch/issues/new/choose") }
+                ) {
+                    Text(text = stringResource(id = R.string.home_more_menu_feedback_or_suggestion))
                 }
             }
 

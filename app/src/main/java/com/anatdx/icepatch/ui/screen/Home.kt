@@ -99,7 +99,6 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.AboutScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.InstallModeSelectScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.PatchesDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -222,7 +221,7 @@ fun UninstallDialog(showDialog: MutableState<Boolean>, navigator: DestinationsNa
                     TextButton(onClick = {
                         showDialog.value = false
                         APApplication.uninstallApatch()
-                        navigator.navigate(PatchesDestination(PatchesViewModel.PatchMode.UNPATCH))
+                        navigator.navigate(InstallModeSelectScreenDestination(PatchesViewModel.PatchMode.UNPATCH))
                     }) {
                         Text(text = stringResource(id = R.string.home_dialog_uninstall_all))
                     }
@@ -512,7 +511,7 @@ private fun KStatusCard(
         shadowElevation = 0.dp,
         tonalElevation = 0.dp,
         modifier = Modifier.clickable(enabled = kpState != APApplication.State.KERNELPATCH_UNINSTALLING) {
-            navigator.navigate(InstallModeSelectScreenDestination)
+            navigator.navigate(InstallModeSelectScreenDestination())
         }
     ) {
         Column(
@@ -606,12 +605,7 @@ private fun KStatusCard(
                             }
 
                             APApplication.State.KERNELPATCH_NEED_UPDATE -> {
-                                // todo: remove legacy compact for kp < 0.9.0
-                                if (Version.installedKPVUInt() < 0x900u) {
-                                    navigator.navigate(PatchesDestination(PatchesViewModel.PatchMode.PATCH_ONLY))
-                                } else {
-                                    navigator.navigate(InstallModeSelectScreenDestination)
-                                }
+                                navigator.navigate(InstallModeSelectScreenDestination())
                             }
 
                             APApplication.State.KERNELPATCH_NEED_REBOOT -> {
@@ -626,7 +620,7 @@ private fun KStatusCard(
                                 if (apState == APApplication.State.ANDROIDPATCH_INSTALLED || apState == APApplication.State.ANDROIDPATCH_NEED_UPDATE) {
                                     showUninstallDialog.value = true
                                 } else {
-                                    navigator.navigate(PatchesDestination(PatchesViewModel.PatchMode.UNPATCH))
+                                    navigator.navigate(InstallModeSelectScreenDestination(PatchesViewModel.PatchMode.UNPATCH))
                                 }
                             }
                         }

@@ -73,6 +73,7 @@ class PatchesViewModel : ViewModel() {
     private var srcBoot: ExtendedFile = patchDir.getChildFile("boot.img")
     private var shell: Shell = createRootShell()
     private var prepared: Boolean = false
+    private var lastPreparedMode: PatchMode? = null
 
     private fun prepare() {
         patchDir.deleteRecursively()
@@ -244,19 +245,74 @@ class PatchesViewModel : ViewModel() {
 
     fun prepare(mode: PatchMode) {
         viewModelScope.launch(Dispatchers.IO) {
-            if (prepared) return@launch
-            prepared = true
+            val needExtract = mode == PatchMode.PATCH_AND_INSTALL || mode == PatchMode.UNPATCH || mode == PatchMode.INSTALL_TO_NEXT_SLOT
+            val modeChanged = lastPreparedMode != mode
 
-            running = true
-            prepare()
-            if (mode != PatchMode.UNPATCH) {
-                parseKpimg()
+            if (!prepared) {
+                prepared = true
+                running = true
+                prepare()
+                if (mode != PatchMode.UNPATCH) {
+                    parseKpimg()
+                }
+                if (needExtract) {
+                    extractAndParseBootimg(mode)
+                }
+                lastPreparedMode = mode
+                running = false
+            } else if (modeChanged) {
+                running = true
+                error = ""
+                when (mode) {
+                    PatchMode.UNPATCH -> {
+                        kpimgInfo = KPModel.KPImgInfo("", "", "", "", "")
+                        existedExtras.clear()
+                        extractAndParseBootimg(mode)
+                    }
+                    PatchMode.PATCH_AND_INSTALL, PatchMode.INSTALL_TO_NEXT_SLOT -> {
+                        existedExtras.clear()
+                        parseKpimg()
+                        extractAndParseBootimg(mode)
+                    }
+                    PatchMode.PATCH_ONLY -> {
+                        kimgInfo = KPModel.KImgInfo("", false)
+                        bootSlot = ""
+                        bootDev = ""
+                        existedExtras.clear()
+                        parseKpimg()
+                    }
+                }
+                lastPreparedMode = mode
+                running = false
             }
-            if (mode == PatchMode.PATCH_AND_INSTALL || mode == PatchMode.UNPATCH || mode == PatchMode.INSTALL_TO_NEXT_SLOT) {
-                extractAndParseBootimg(mode)
+            if (mode == PatchMode.PATCH_AND_INSTALL) {
+                pendingEmbedKpmUri?.let { uri ->
+                    pendingEmbedKpmUri = null
+                    embedKPM(uri)
+                }
             }
-            running = false
         }
+    }
+
+    var pendingEmbedKpmUri: Uri? = null
+
+    fun clearCache() {
+        prepared = false
+        lastPreparedMode = null
+        bootSlot = ""
+        bootDev = ""
+        kimgInfo = KPModel.KImgInfo("", false)
+        kpimgInfo = KPModel.KPImgInfo("", "", "", "", "")
+        error = ""
+        existedExtras.clear()
+        newExtras.clear()
+        newExtrasFileName.clear()
+        pendingEmbedKpmUri = null
+        running = false
+        patching = false
+        patchdone = false
+        needReboot = false
+        patchLog = ""
     }
 
     fun embedKPM(uri: Uri) {

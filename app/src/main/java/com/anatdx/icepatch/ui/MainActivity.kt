@@ -79,10 +79,9 @@ import com.anatdx.icepatch.ui.component.ModuleInstallConfirmDialog
 import com.anatdx.icepatch.ui.screen.BottomBarDestination
 import com.anatdx.icepatch.ui.theme.APatchTheme
 import com.anatdx.icepatch.ui.theme.rememberBackgroundConfig
-import com.anatdx.icepatch.ui.viewmodel.PatchesViewModel
 import com.anatdx.icepatch.ui.viewmodel.SuperUserViewModel
+import com.ramcosta.composedestinations.generated.destinations.InstallModeSelectScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.InstallScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.PatchesDestination
 import com.anatdx.icepatch.ui.screen.MODULE_TYPE
 import com.anatdx.icepatch.util.KpmInfo
 import com.anatdx.icepatch.util.KpmInfoReader
@@ -323,7 +322,7 @@ class MainActivity : AppCompatActivity() {
                     onEmbed = {
                         showKpmInstallDialog = false
                         pendingKpmInfo = null
-                        navigator.navigate(PatchesDestination(PatchesViewModel.PatchMode.PATCH_ONLY))
+                        navigator.navigate(InstallModeSelectScreenDestination())
                     },
                     onDismiss = {
                         showKpmInstallDialog = false

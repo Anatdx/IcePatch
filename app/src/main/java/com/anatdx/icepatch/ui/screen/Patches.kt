@@ -28,10 +28,13 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Healing
+import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Route
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -75,6 +78,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
@@ -91,13 +95,24 @@ private const val TAG = "Patches"
 
 @Destination<RootGraph>
 @Composable
-fun Patches(mode: PatchesViewModel.PatchMode) {
+fun Patches(mode: PatchesViewModel.PatchMode, autoStartPatch: Boolean = false) {
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
 
-    val viewModel = viewModel<PatchesViewModel>()
+    val viewModel = viewModel<PatchesViewModel>(
+        viewModelStoreOwner = LocalContext.current as FragmentActivity
+    )
     SideEffect {
         viewModel.prepare(mode)
+    }
+
+    LaunchedEffect(autoStartPatch) {
+        if (!autoStartPatch) return@LaunchedEffect
+        if (viewModel.patching || viewModel.patchdone) return@LaunchedEffect
+        when (mode) {
+            PatchesViewModel.PatchMode.UNPATCH -> viewModel.doUnpatch()
+            else -> if (viewModel.superkey.isNotEmpty()) viewModel.doPatch(mode)
+        }
     }
 
     Scaffold(topBar = {
@@ -143,88 +158,8 @@ fun Patches(mode: PatchesViewModel.PatchMode) {
                 )
             }
 
-            PatchMode(mode)
+            // 统一两页式：第二页只显示错误、日志、重启
             ErrorView(viewModel.error)
-            KernelPatchImageView(viewModel.kpimgInfo)
-
-            if (mode == PatchesViewModel.PatchMode.PATCH_ONLY && selectedBootImage != null && viewModel.kimgInfo.banner.isEmpty()) {
-                viewModel.copyAndParseBootimg(selectedBootImage!!)
-                // Fix endless loop. It's not normal if (parse done && working thread is not working) but banner still null
-                // Leave user re-choose
-                if (!viewModel.running && viewModel.kimgInfo.banner.isEmpty()) {
-                    selectedBootImage = null
-                }
-            }
-
-            // select boot.img
-            if (mode == PatchesViewModel.PatchMode.PATCH_ONLY && viewModel.kimgInfo.banner.isEmpty()) {
-                SelectFileButton(
-                    text = stringResource(id = R.string.patch_select_bootimg_btn),
-                    onSelected = { data, uri ->
-                        Log.d(TAG, "select boot.img, data: $data, uri: $uri")
-                        viewModel.copyAndParseBootimg(uri)
-                    }
-                )
-            }
-
-            if (viewModel.bootSlot.isNotEmpty() || viewModel.bootDev.isNotEmpty()) {
-                BootimgView(slot = viewModel.bootSlot, boot = viewModel.bootDev)
-            }
-
-            if (viewModel.kimgInfo.banner.isNotEmpty()) {
-                KernelImageView(viewModel.kimgInfo)
-            }
-
-            if (mode != PatchesViewModel.PatchMode.UNPATCH && viewModel.kimgInfo.banner.isNotEmpty()) {
-                SetSuperKeyView(viewModel)
-            }
-
-            // existed extras
-            if (mode == PatchesViewModel.PatchMode.PATCH_AND_INSTALL || mode == PatchesViewModel.PatchMode.INSTALL_TO_NEXT_SLOT) {
-                viewModel.existedExtras.forEach(action = {
-                    ExtraItem(extra = it, true, onDelete = {
-                        viewModel.existedExtras.remove(it)
-                    })
-                })
-            }
-
-            // add new extras
-            if (mode != PatchesViewModel.PatchMode.UNPATCH) {
-                viewModel.newExtras.forEach(action = {
-                    ExtraItem(extra = it, false, onDelete = {
-                        val idx = viewModel.newExtras.indexOf(it)
-                        viewModel.newExtras.remove(it)
-                        viewModel.newExtrasFileName.removeAt(idx)
-                    })
-                })
-            }
-
-            // add new KPM
-            if (viewModel.superkey.isNotEmpty() && !viewModel.patching && !viewModel.patchdone && mode != PatchesViewModel.PatchMode.UNPATCH) {
-                SelectFileButton(
-                    text = stringResource(id = R.string.patch_embed_kpm_btn),
-                    onSelected = { data, uri ->
-                        Log.d(TAG, "select kpm, data: $data, uri: $uri")
-                        viewModel.embedKPM(uri)
-                    }
-                )
-            }
-
-            // do patch, update, unpatch
-            if (!viewModel.patching && !viewModel.patchdone) {
-                // patch start
-                if (mode != PatchesViewModel.PatchMode.UNPATCH && viewModel.superkey.isNotEmpty()) {
-                    StartButton(stringResource(id = R.string.patch_start_patch_btn)) {
-                        viewModel.doPatch(
-                            mode
-                        )
-                    }
-                }
-                // unpatch
-                if (mode == PatchesViewModel.PatchMode.UNPATCH && viewModel.kimgInfo.banner.isNotEmpty()) {
-                    StartButton(stringResource(id = R.string.patch_start_unpatch_btn)) { viewModel.doUnpatch() }
-                }
-            }
 
             // patch log
             if (viewModel.patching || viewModel.patchdone) {
@@ -265,7 +200,7 @@ fun Patches(mode: PatchesViewModel.PatchMode) {
 
 
 @Composable
-private fun StartButton(text: String, onClick: () -> Unit) {
+internal fun StartButton(text: String, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth(),
@@ -282,7 +217,7 @@ private fun StartButton(text: String, onClick: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ExtraConfigDialog(kpmInfo: KPModel.KPMInfo, onDismiss: () -> Unit) {
+internal fun ExtraConfigDialog(kpmInfo: KPModel.KPMInfo, onDismiss: () -> Unit) {
     var event by remember { mutableStateOf(kpmInfo.event) }
     var args by remember { mutableStateOf(kpmInfo.args) }
 
@@ -348,7 +283,7 @@ private fun ExtraConfigDialog(kpmInfo: KPModel.KPMInfo, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun ExtraItem(extra: KPModel.IExtraInfo, existed: Boolean, onDelete: () -> Unit) {
+internal fun ExtraItem(extra: KPModel.IExtraInfo, existed: Boolean, onDelete: () -> Unit) {
     var showConfigDialog by remember { mutableStateOf(false) }
 
     if (showConfigDialog && extra is KPModel.KPMInfo) {
@@ -422,7 +357,7 @@ private fun ExtraItem(extra: KPModel.IExtraInfo, existed: Boolean, onDelete: () 
 
 
 @Composable
-private fun SetSuperKeyView(viewModel: PatchesViewModel) {
+internal fun SetSuperKeyView(viewModel: PatchesViewModel) {
     var skey by remember { mutableStateOf(viewModel.superkey) }
     var showWarn by remember { mutableStateOf(!viewModel.checkSuperKeyValidation(skey)) }
     var keyVisible by remember { mutableStateOf(false) }
@@ -497,48 +432,22 @@ private fun SetSuperKeyView(viewModel: PatchesViewModel) {
     }
 }
 
-@Composable
-private fun KernelPatchImageView(kpImgInfo: KPModel.KPImgInfo) {
-    if (kpImgInfo.version.isEmpty()) return
-    ElevatedCard(
-        colors = CardDefaults.elevatedCardColors(containerColor = run {
-            MaterialTheme.colorScheme.secondaryContainer
-        })
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 12.dp),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = stringResource(id = R.string.patch_item_kpimg),
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
-            Text(
-                text = stringResource(id = R.string.patch_item_kpimg_version) + " " + Version.uInt2String(
-                    kpImgInfo.version.substring(2).toUInt(16)
-                ), style = MaterialTheme.typography.bodyMedium
-            )
-            Text(
-                text = stringResource(id = R.string.patch_item_kpimg_comile_time) + " " + kpImgInfo.compileTime,
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Text(
-                text = stringResource(id = R.string.patch_item_kpimg_config) + " " + kpImgInfo.config,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-    }
-}
+private val LINUX_VERSION_REGEX = Regex("""Linux version ([^(]+)""")
+
+private fun formatKernelBanner(banner: String): String =
+    LINUX_VERSION_REGEX.find(banner)?.groupValues?.get(1)?.trim() ?: banner
 
 @Composable
-private fun BootimgView(slot: String, boot: String) {
+internal fun PatchInfoCard(
+    kpimgInfo: KPModel.KPImgInfo,
+    bootSlot: String,
+    kimgInfo: KPModel.KImgInfo
+) {
+    val hasKp = kpimgInfo.version.isNotEmpty()
+    val hasSlot = bootSlot.isNotEmpty()
+    val hasKernel = kimgInfo.banner.isNotEmpty()
+    if (!hasKp && !hasSlot && !hasKernel) return
+
     ElevatedCard(
         colors = CardDefaults.elevatedCardColors(containerColor = run {
             MaterialTheme.colorScheme.secondaryContainer
@@ -548,61 +457,68 @@ private fun BootimgView(slot: String, boot: String) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = stringResource(id = R.string.patch_item_bootimg),
-                    style = MaterialTheme.typography.bodyLarge
-                )
+            if (hasKp) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Healing,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = stringResource(id = R.string.patch_item_kpimg_version) + " " + Version.uInt2String(
+                            kpimgInfo.version.substring(2).toUInt(16)
+                        ) + "  " + stringResource(id = R.string.patch_item_kpimg_comile_time) + " " + kpimgInfo.compileTime,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
-            if (slot.isNotEmpty()) {
-                Text(
-                    text = stringResource(id = R.string.patch_item_bootimg_slot) + " " + slot,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+            if (hasSlot) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Route,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = stringResource(id = R.string.patch_item_bootimg_slot) + " " + bootSlot,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
-            Text(
-                text = stringResource(id = R.string.patch_item_bootimg_dev) + " " + boot,
-                style = MaterialTheme.typography.bodyMedium
-            )
+            if (hasKernel) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Memory,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = formatKernelBanner(kimgInfo.banner),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
         }
     }
 }
 
-@Composable
-private fun KernelImageView(kImgInfo: KPModel.KImgInfo) {
-    ElevatedCard(
-        colors = CardDefaults.elevatedCardColors(containerColor = run {
-            MaterialTheme.colorScheme.secondaryContainer
-        })
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = stringResource(id = R.string.patch_item_kernel),
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
-            Text(text = kImgInfo.banner, style = MaterialTheme.typography.bodyMedium)
-        }
-    }
-}
-
 
 @Composable
-private fun SelectFileButton(text: String, onSelected: (data: Intent, uri: Uri) -> Unit) {
+internal fun SelectFileButton(text: String, onSelected: (data: Intent, uri: Uri) -> Unit) {
     val selectFileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) {
@@ -614,24 +530,19 @@ private fun SelectFileButton(text: String, onSelected: (data: Intent, uri: Uri) 
         onSelected(data, uri)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth(),
-        horizontalAlignment = Alignment.End
-    ) {
-        Button(
-            onClick = {
-                val intent = Intent(Intent.ACTION_GET_CONTENT)
-                intent.type = "*/*"
-                selectFileLauncher.launch(intent)
-            },
-            content = { Text(text = text) }
-        )
-    }
+    Button(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = {
+            val intent = Intent(Intent.ACTION_GET_CONTENT)
+            intent.type = "*/*"
+            selectFileLauncher.launch(intent)
+        },
+        content = { Text(text = text) }
+    )
 }
 
 @Composable
-private fun ErrorView(error: String) {
+internal fun ErrorView(error: String) {
     if (error.isEmpty()) return
     ElevatedCard(
         colors = CardDefaults.elevatedCardColors(containerColor = run {
@@ -654,7 +565,7 @@ private fun ErrorView(error: String) {
 }
 
 @Composable
-private fun PatchMode(mode: PatchesViewModel.PatchMode) {
+internal fun PatchMode(mode: PatchesViewModel.PatchMode) {
     ElevatedCard(
         colors = CardDefaults.elevatedCardColors(containerColor = run {
             MaterialTheme.colorScheme.secondaryContainer

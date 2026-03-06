@@ -72,7 +72,7 @@ import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
-import com.ramcosta.composedestinations.generated.destinations.PatchesDestination
+import com.ramcosta.composedestinations.generated.destinations.InstallModeSelectScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.topjohnwu.superuser.nio.ExtendedFile
 import com.topjohnwu.superuser.nio.FileSystemManager
@@ -176,6 +176,15 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
                 }
             }
 
+            val embedKpmLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.StartActivityForResult()
+            ) {
+                if (it.resultCode != RESULT_OK) return@rememberLauncherForActivityResult
+                val uri = it.data?.data ?: return@rememberLauncherForActivityResult
+                pendingEmbedKpmUri = uri
+                navigator.navigate(InstallModeSelectScreenDestination())
+            }
+
             var expanded by remember { mutableStateOf(false) }
             val options = listOf(moduleEmbed, moduleLoad)
 
@@ -204,7 +213,9 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
                                 expanded = false
                                 when (label) {
                                     moduleEmbed -> {
-                                        navigator.navigate(PatchesDestination(PatchesViewModel.PatchMode.PATCH_AND_INSTALL))
+                                        embedKpmLauncher.launch(
+                                            Intent(Intent.ACTION_GET_CONTENT).apply { type = "*/*" }
+                                        )
                                     }
 
                                     moduleLoad -> {

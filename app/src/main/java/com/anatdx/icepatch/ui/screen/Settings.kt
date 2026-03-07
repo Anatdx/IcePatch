@@ -46,7 +46,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -133,8 +132,7 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                 title = { Text(stringResource(R.string.settings)) },
                 colors = TopBarStyle.topAppBarColors()
             )
-        },
-        snackbarHost = { SnackbarHost(snackBarHost) }
+        }
     ) { paddingValues ->
 
         val loadingDialog = rememberLoadingDialog()

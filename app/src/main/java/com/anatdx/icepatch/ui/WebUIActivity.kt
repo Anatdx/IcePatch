@@ -109,9 +109,9 @@ class WebUIActivity : ComponentActivity() {
         val name = intent.getStringExtra("name")!!
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             @Suppress("DEPRECATION")
-            setTaskDescription(ActivityManager.TaskDescription("APatch - $name"))
+            setTaskDescription(ActivityManager.TaskDescription("IcePatch - $name"))
         } else {
-            val taskDescription = ActivityManager.TaskDescription.Builder().setLabel("APatch - $name").build()
+            val taskDescription = ActivityManager.TaskDescription.Builder().setLabel("IcePatch - $name").build()
             setTaskDescription(taskDescription)
         }
 

@@ -38,6 +38,8 @@ class APModuleViewModel : ViewModel() {
         val hasWebUi: Boolean,
         val hasActionScript: Boolean,
         val metamodule: Boolean,
+        val actionIconPath: String? = null,
+        val webUiIconPath: String? = null,
         val updateInfo: ModuleUpdateInfo? = null,
     )
 
@@ -106,7 +108,9 @@ class APModuleViewModel : ViewModel() {
                             obj.optString("updateJson"),
                             obj.getBooleanCompat("web"),
                             obj.getBooleanCompat("action"),
-                            obj.getBooleanCompat("metamodule")
+                            obj.getBooleanCompat("metamodule"),
+                            buildModuleIconUri(obj.getString("id"), obj.optString("actionIcon")),
+                            buildModuleIconUri(obj.getString("id"), obj.optString("webuiIcon"))
                         )
                     }.toList()
                 viewModelScope.launch(Dispatchers.IO) {
@@ -178,6 +182,14 @@ class APModuleViewModel : ViewModel() {
 
         return ModuleUpdateInfo(version, versionCode, zipUrl, changelog)
     }
+}
+
+private fun buildModuleIconUri(moduleId: String, iconPath: String?): String? {
+    val path = iconPath?.trim().orEmpty()
+    if (path.isEmpty() || path.startsWith("/") || path.contains("..")) {
+        return null
+    }
+    return "su:///data/adb/modules/$moduleId/$path"
 }
 
 private fun JSONObject.getBooleanCompat(key: String, default: Boolean = false): Boolean {

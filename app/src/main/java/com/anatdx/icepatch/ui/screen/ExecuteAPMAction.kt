@@ -1,6 +1,8 @@
 package com.anatdx.icepatch.ui.screen
 
 import android.os.Environment
+import android.widget.Toast
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -21,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -53,9 +56,13 @@ fun ExecuteAPMActionScreen(navigator: DestinationsNavigator, moduleId: String) {
     var tempText: String
     val logContent = rememberSaveable { StringBuilder() }
     val snackBarHost = LocalSnackbarHost.current
+    val activity = LocalActivity.current
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     var actionFinished by rememberSaveable { mutableStateOf(false) }
+    val fromShortcut = remember(activity) {
+        activity?.intent?.getStringExtra("shortcut_type") == "module_action"
+    }
 
     LaunchedEffect(Unit) {
         if (text.isNotEmpty() || actionFinished) {
@@ -87,6 +94,11 @@ fun ExecuteAPMActionScreen(navigator: DestinationsNavigator, moduleId: String) {
         actionFinished = true
         if (!result) {
             snackBarHost.showSnackbar("执行失败")
+        } else if (fromShortcut) {
+            activity?.let {
+                Toast.makeText(it, it.getString(R.string.module_action_success), Toast.LENGTH_SHORT).show()
+                it.finish()
+            }
         }
     }
 
@@ -94,7 +106,11 @@ fun ExecuteAPMActionScreen(navigator: DestinationsNavigator, moduleId: String) {
         topBar = {
             TopBar(
                 onBack = dropUnlessResumed {
-                    navigator.popBackStack()
+                    if (fromShortcut && activity != null) {
+                        activity.finish()
+                    } else {
+                        navigator.popBackStack()
+                    }
                 },
                 onSave = {
                     scope.launch {

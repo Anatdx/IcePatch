@@ -61,6 +61,27 @@ bool ValidateModuleId(const std::string& id) {
   return true;
 }
 
+std::string ResolveModuleIconPath(const std::string& icon_value, const std::string& module_id,
+                                  const std::string& module_path, const char* key_name) {
+  if (icon_value.empty()) {
+    return "";
+  }
+  if (icon_value[0] == '/') {
+    LOGW("module %s: %s has absolute path, rejected", module_id.c_str(), key_name);
+    return "";
+  }
+  if (icon_value.find("..") != std::string::npos) {
+    LOGW("module %s: %s has parent traversal, rejected", module_id.c_str(), key_name);
+    return "";
+  }
+  std::string full_path = module_path + "/" + icon_value;
+  if (!FileExists(full_path)) {
+    LOGW("module %s: %s not found: %s", module_id.c_str(), key_name, full_path.c_str());
+    return "";
+  }
+  return icon_value;
+}
+
 std::map<std::string, std::string> ParseProps(const std::string& content) {
   std::map<std::string, std::string> props;
   std::stringstream ss(content);
@@ -463,12 +484,32 @@ bool ListModules() {
     bool web = DirExists(module_path + "/" + kModuleWebDir);
     bool action = FileExists(module_path + "/" + kModuleActionScript) ||
                   FileExists(module_path + "/" + id + ".lua");
+    std::string action_icon;
+    std::string webui_icon;
+    auto action_icon_it = props.find("actionIcon");
+    if (action_icon_it != props.end()) {
+      action_icon = ResolveModuleIconPath(action_icon_it->second, id, module_path, "actionIcon");
+    }
+    auto webui_icon_it = props.find("webuiIcon");
+    if (webui_icon_it != props.end()) {
+      webui_icon = ResolveModuleIconPath(webui_icon_it->second, id, module_path, "webuiIcon");
+    }
 
     props["enabled"] = enabled ? "true" : "false";
     props["update"] = update ? "true" : "false";
     props["remove"] = remove ? "true" : "false";
     props["web"] = web ? "true" : "false";
     props["action"] = action ? "true" : "false";
+    if (!action_icon.empty()) {
+      props["actionIcon"] = action_icon;
+    } else {
+      props.erase("actionIcon");
+    }
+    if (!webui_icon.empty()) {
+      props["webuiIcon"] = webui_icon;
+    } else {
+      props.erase("webuiIcon");
+    }
     modules.push_back(props);
     return true;
   });

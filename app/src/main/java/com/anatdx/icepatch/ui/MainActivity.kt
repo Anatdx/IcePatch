@@ -55,6 +55,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -82,6 +83,7 @@ import com.anatdx.icepatch.ui.theme.rememberBackgroundConfig
 import com.anatdx.icepatch.ui.viewmodel.SuperUserViewModel
 import com.ramcosta.composedestinations.generated.destinations.InstallModeSelectScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.InstallScreenDestination
+import com.ramcosta.composedestinations.generated.destinations.ExecuteAPMActionScreenDestination
 import com.anatdx.icepatch.ui.screen.MODULE_TYPE
 import com.anatdx.icepatch.util.KpmInfo
 import com.anatdx.icepatch.util.KpmInfoReader
@@ -92,6 +94,7 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import me.zhanghai.android.appiconloader.coil.AppIconFetcher
 import me.zhanghai.android.appiconloader.coil.AppIconKeyer
+import androidx.core.net.toUri
 
 class MainActivity : AppCompatActivity() {
 
@@ -238,6 +241,8 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
                 }
+
+                ShortcutIntentHandler(currentIntent = currentIntent, navigator = navigator)
 
                 LaunchedEffect(Unit) {
                     if (SuperUserViewModel.apps.isEmpty()) {
@@ -394,6 +399,42 @@ class MainActivity : AppCompatActivity() {
         )
 
         isLoading = false
+    }
+}
+
+@Composable
+private fun ShortcutIntentHandler(
+    currentIntent: Intent?,
+    navigator: com.ramcosta.composedestinations.navigation.DestinationsNavigator
+) {
+    val context = LocalContext.current
+    var handled by remember(currentIntent) { mutableStateOf(false) }
+
+    LaunchedEffect(currentIntent, handled) {
+        if (handled) return@LaunchedEffect
+        val intent = currentIntent ?: return@LaunchedEffect
+        when (intent.getStringExtra("shortcut_type")) {
+            "module_action" -> {
+                val moduleId = intent.getStringExtra("module_id") ?: return@LaunchedEffect
+                navigator.navigate(ExecuteAPMActionScreenDestination(moduleId)) {
+                    launchSingleTop = true
+                }
+                handled = true
+            }
+
+            "module_webui" -> {
+                val moduleId = intent.getStringExtra("module_id") ?: return@LaunchedEffect
+                val moduleName = intent.getStringExtra("module_name") ?: moduleId
+                val webIntent = Intent(context, WebUIActivity::class.java)
+                    .setData("apatch://webui/$moduleId".toUri())
+                    .putExtra("id", moduleId)
+                    .putExtra("name", moduleName)
+                    .putExtra("from_webui_shortcut", true)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                context.startActivity(webIntent)
+                handled = true
+            }
+        }
     }
 }
 

@@ -107,6 +107,7 @@ import com.anatdx.icepatch.ui.component.WarningCard
 import com.anatdx.icepatch.ui.component.pinnedScrollBehavior
 import com.anatdx.icepatch.ui.component.rememberConfirmDialog
 import com.anatdx.icepatch.ui.component.rememberLoadingDialog
+import com.anatdx.icepatch.ui.theme.CardStyleProvider
 import com.anatdx.icepatch.ui.viewmodel.APModuleViewModel
 import com.anatdx.icepatch.util.DownloadListener
 import com.anatdx.icepatch.util.ModuleShortcut
@@ -763,10 +764,13 @@ private fun ModuleItem(
     val decoration = if (!module.remove) TextDecoration.None else TextDecoration.LineThrough
     val moduleAuthor = stringResource(id = R.string.apm_author)
     val viewModel = viewModel<APModuleViewModel>()
+    val cardContainerColor = CardStyleProvider.styledContainerColor(MaterialTheme.colorScheme.surfaceVariant)
+    val cardContentColor = CardStyleProvider.contentColorFor(cardContainerColor)
     Surface(
         modifier = modifier,
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
+        color = cardContainerColor,
+        contentColor = cardContentColor,
+        tonalElevation = 0.dp,
         shape = RoundedCornerShape(20.dp)
     ) {
 
@@ -865,7 +869,7 @@ private fun ModuleItem(
 
                 HorizontalDivider(
                     thickness = 1.5.dp,
-                    color = MaterialTheme.colorScheme.surface,
+                    color = cardContainerColor.copy(alpha = 0.45f),
                     modifier = Modifier.padding(top = 8.dp)
                 )
 

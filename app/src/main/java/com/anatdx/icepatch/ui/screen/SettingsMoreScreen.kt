@@ -31,6 +31,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -138,7 +139,9 @@ fun SettingsMoreScreen(navigator: DestinationsNavigator) {
 
             SettingsGroupCard(
                 title = stringResource(id = R.string.settings_appearance),
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                alphaOverride = cardAlpha,
+                dimOverride = cardDim
             ) {
                 SwitchItem(
                     icon = Icons.Filled.InvertColors,
@@ -187,32 +190,50 @@ fun SettingsMoreScreen(navigator: DestinationsNavigator) {
                     }
 
                     if (!useSystemDynamicColor) {
-                        ListItem(headlineContent = {
+                        ListItem(
+                            headlineContent = {
+                                Text(text = stringResource(id = R.string.settings_custom_color_theme))
+                            },
+                            modifier = Modifier.clickable {
+                                showThemeChooseDialog.value = true
+                            },
+                            colors = ListItemDefaults.colors(
+                                containerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent
+                            ),
+                            supportingContent = {
+                                val colorMode = prefs.getString("custom_color", "blue")
+                                Text(
+                                    text = stringResource(colorNameToString(colorMode.toString())),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                            },
+                            leadingContent = { Icon(Icons.Filled.FormatColorFill, null) }
+                        )
+                    }
+                } else {
+                    ListItem(
+                        headlineContent = {
                             Text(text = stringResource(id = R.string.settings_custom_color_theme))
-                        }, modifier = Modifier.clickable {
+                        },
+                        modifier = Modifier.clickable {
                             showThemeChooseDialog.value = true
-                        }, supportingContent = {
+                        },
+                        colors = ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent
+                        ),
+                        supportingContent = {
                             val colorMode = prefs.getString("custom_color", "blue")
                             Text(
                                 text = stringResource(colorNameToString(colorMode.toString())),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.outline
                             )
-                        }, leadingContent = { Icon(Icons.Filled.FormatColorFill, null) })
-                    }
-                } else {
-                    ListItem(headlineContent = {
-                        Text(text = stringResource(id = R.string.settings_custom_color_theme))
-                    }, modifier = Modifier.clickable {
-                        showThemeChooseDialog.value = true
-                    }, supportingContent = {
-                        val colorMode = prefs.getString("custom_color", "blue")
-                        Text(
-                            text = stringResource(colorNameToString(colorMode.toString())),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.outline
-                        )
-                    }, leadingContent = { Icon(Icons.Filled.FormatColorFill, null) })
+                        },
+                        leadingContent = { Icon(Icons.Filled.FormatColorFill, null) }
+                    )
                 }
 
                 Text(
@@ -235,6 +256,10 @@ fun SettingsMoreScreen(navigator: DestinationsNavigator) {
                         ListItem(
                             leadingContent = { Icon(Icons.Filled.Image, null) },
                             headlineContent = { Text(stringResource(id = R.string.settings_pick_background)) },
+                            colors = ListItemDefaults.colors(
+                                containerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent
+                            ),
                             modifier = Modifier.clickable {
                                 pickBackgroundLauncher.launch("image/*")
                             }
@@ -414,7 +439,9 @@ fun SettingsMoreScreen(navigator: DestinationsNavigator) {
             if (aPatchReady && kPatchReady) {
                 SettingsGroupCard(
                     title = stringResource(id = R.string.settings_developer_options),
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    alphaOverride = cardAlpha,
+                    dimOverride = cardDim
                 ) {
                     var enableWebDebugging by rememberSaveable {
                         mutableStateOf(

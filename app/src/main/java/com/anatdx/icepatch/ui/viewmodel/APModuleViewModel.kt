@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.anatdx.icepatch.apApp
 import com.anatdx.icepatch.util.HanziToPinyin
 import com.anatdx.icepatch.util.listModules
@@ -63,9 +64,7 @@ class APModuleViewModel : ViewModel() {
         modules.filter {
             it.id.contains(search, true) || it.name.contains(search, true) || HanziToPinyin.getInstance()
                 .toPinyinString(it.name)?.contains(search, true) == true
-        }.sortedWith(comparator).also {
-            isRefreshing = false
-        }
+        }.sortedWith(comparator)
     }
 
     var isNeedRefresh by mutableStateOf(false)
@@ -77,9 +76,9 @@ class APModuleViewModel : ViewModel() {
 
     fun fetchModuleList() {
         viewModelScope.launch(Dispatchers.IO) {
-            isRefreshing = true
-
-            val oldModuleList = modules
+            withContext(Dispatchers.Main) {
+                isRefreshing = true
+            }
 
             val start = SystemClock.elapsedRealtime()
 
@@ -124,12 +123,9 @@ class APModuleViewModel : ViewModel() {
                 isNeedRefresh = false
             }.onFailure { e ->
                 Log.e(TAG, "fetchModuleList: ", e)
-                isRefreshing = false
             }
 
-            // when both old and new is kotlin.collections.EmptyList
-            // moduleList update will don't trigger
-            if (oldModuleList === modules) {
+            withContext(Dispatchers.Main) {
                 isRefreshing = false
             }
 

@@ -91,6 +91,7 @@ import com.anatdx.icepatch.ui.component.SearchAppBar
 import com.anatdx.icepatch.ui.component.pinnedScrollBehavior
 import com.anatdx.icepatch.ui.component.rememberConfirmDialog
 import com.anatdx.icepatch.ui.component.rememberLoadingDialog
+import com.anatdx.icepatch.ui.theme.CardStyleProvider
 import com.anatdx.icepatch.ui.viewmodel.KPModel
 import com.anatdx.icepatch.ui.viewmodel.KPModuleViewModel
 import com.anatdx.icepatch.ui.viewmodel.PatchesViewModel
@@ -494,11 +495,14 @@ private fun KPModuleItem(
     val moduleAuthor = stringResource(id = R.string.kpm_author)
     val moduleArgs = stringResource(id = R.string.kpm_args)
     val decoration = TextDecoration.None
+    val cardContainerColor = CardStyleProvider.styledContainerColor(MaterialTheme.colorScheme.surfaceVariant)
+    val cardContentColor = CardStyleProvider.contentColorFor(cardContainerColor)
 
     Surface(
         modifier = modifier,
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
+        color = cardContainerColor,
+        contentColor = cardContentColor,
+        tonalElevation = 0.dp,
         shape = RoundedCornerShape(20.dp)
     ) {
 
@@ -555,7 +559,7 @@ private fun KPModuleItem(
 
                 HorizontalDivider(
                     thickness = 1.5.dp,
-                    color = MaterialTheme.colorScheme.surface,
+                    color = cardContainerColor.copy(alpha = 0.45f),
                     modifier = Modifier.padding(top = 8.dp)
                 )
 

@@ -892,13 +892,16 @@ private fun getDeviceInfo(): String {
 private fun InfoCard(kpState: APApplication.State, apState: APApplication.State) {
     val prefs = APApplication.sharedPreferences
     val hideOtherInfo = prefs.getBoolean("is_hide_other_info", false)
+    val cardContainer = CardStyleProvider.styledContainerColor(MaterialTheme.colorScheme.surfaceVariant)
+    val cardContent = CardStyleProvider.contentColorFor(cardContainer)
     fun allow(key: String): Boolean {
         return !hideOtherInfo || prefs.getBoolean("home_info_$key", true)
     }
 
     Surface(
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
+        color = cardContainer,
+        contentColor = cardContent,
+        tonalElevation = 0.dp,
         shadowElevation = 0.dp,
         shape = RoundedCornerShape(20.dp)
     ) {
@@ -1070,10 +1073,13 @@ fun UpdateCard() {
 @Composable
 fun LearnMoreCard() {
     val uriHandler = LocalUriHandler.current
+    val cardContainer = CardStyleProvider.styledContainerColor(MaterialTheme.colorScheme.surfaceVariant)
+    val cardContent = CardStyleProvider.contentColorFor(cardContainer)
 
     Surface(
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
+        color = cardContainer,
+        contentColor = cardContent,
+        tonalElevation = 0.dp,
         shadowElevation = 0.dp,
         shape = RoundedCornerShape(20.dp)
     ) {

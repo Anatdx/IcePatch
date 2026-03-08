@@ -7,6 +7,7 @@
 #include "module.hpp"
 #include "sepolicy.hpp"
 #include "supercall.hpp"
+#include "utils.hpp"
 
 #include <cstdio>
 #include <cstring>
@@ -104,6 +105,10 @@ int RunCli(int argc, char** argv) {
   } else if (cmd == "module") {
     if (args.size() < 2) {
       PrintUsage();
+      return 1;
+    }
+    if (!SwitchMntNs(1)) {
+      LOGE("Failed to switch to global mount namespace");
       return 1;
     }
     const std::string& sub = args[1];

@@ -4,6 +4,7 @@
 #include "utils.hpp"
 
 #include <algorithm>
+#include <exception>
 #include <fstream>
 #include <sstream>
 #include <thread>
@@ -35,6 +36,23 @@ std::vector<std::string> SplitCsvLine(const std::string& line) {
   return cols;
 }
 
+bool ParseIntField(const std::string& raw, int* out) {
+  if (out == nullptr) {
+    return false;
+  }
+  try {
+    size_t idx = 0;
+    int value = std::stoi(raw, &idx);
+    if (idx != raw.size()) {
+      return false;
+    }
+    *out = value;
+    return true;
+  } catch (const std::exception&) {
+    return false;
+  }
+}
+
 }  // namespace
 
 std::vector<PackageConfig> ReadApPackageConfig() {
@@ -59,10 +77,11 @@ std::vector<PackageConfig> ReadApPackageConfig() {
       }
       PackageConfig cfg;
       cfg.pkg = cols[0];
-      cfg.exclude = std::stoi(cols[1]);
-      cfg.allow = std::stoi(cols[2]);
-      cfg.uid = std::stoi(cols[3]);
-      cfg.to_uid = std::stoi(cols[4]);
+      if (!ParseIntField(cols[1], &cfg.exclude) || !ParseIntField(cols[2], &cfg.allow) ||
+          !ParseIntField(cols[3], &cfg.uid) || !ParseIntField(cols[4], &cfg.to_uid)) {
+        LOGW("Skip malformed package_config row: %s", line.c_str());
+        continue;
+      }
       cfg.sctx = cols[5];
       configs.push_back(cfg);
     }

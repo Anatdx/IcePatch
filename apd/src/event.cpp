@@ -11,13 +11,16 @@
 
 #include <chrono>
 #include <csignal>
+#include <cerrno>
 #include <cstdio>
 #include <cstdlib>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/inotify.h>
+#include <sys/wait.h>
 #include <poll.h>
 #include <atomic>
+#include <filesystem>
 #include <thread>
 
 namespace apd {
@@ -49,6 +52,22 @@ bool RunStage(const std::string& stage, const std::string& superkey, bool block)
   return true;
 }
 
+void RunUidMonitor() {
+  pid_t pid = fork();
+  if (pid < 0) {
+    LOGE("fork uid-listener failed: %d", errno);
+    return;
+  }
+  if (pid == 0) {
+    setpgid(0, 0);
+    SwitchCgroups();
+    char* const args[] = {const_cast<char*>(kDaemonPath), const_cast<char*>("uid-listener"),
+                          nullptr};
+    execv(kDaemonPath, args);
+    _exit(127);
+  }
+}
+
 }  // namespace
 
 bool OnPostDataFs(const std::string& superkey) {
@@ -75,7 +94,7 @@ bool OnPostDataFs(const std::string& superkey) {
                           "*; do mv \"$file\" \"$file.old.log\"; done";
   ExecCommand({"/system/bin/sh", "-c", rotate_cmd}, false);
 
-  std::string logcat_path = std::string(kLogDir) + "locat.log";
+  std::string logcat_path = std::string(kLogDir) + "logcat.log";
   std::string dmesg_path = std::string(kLogDir) + "dmesg.log";
   std::string logcat_cmd =
       "timeout -s 9 120s logcat -b main,system,crash -f " + logcat_path +
@@ -107,8 +126,16 @@ bool OnPostDataFs(const std::string& superkey) {
   EnsureBinaries();
 
   if (DirExists(kModuleUpdateDir)) {
-    HandleUpdatedModules();
-    ExecCommand({"/system/bin/sh", "-c", std::string("rm -rf ") + kModuleUpdateDir});
+    if (!HandleUpdatedModules()) {
+      LOGE("HandleUpdatedModules failed");
+      return false;
+    }
+    std::error_code ec;
+    std::filesystem::remove_all(kModuleUpdateDir, ec);
+    if (ec) {
+      LOGE("remove modules_update failed: %s (%d)", ec.message().c_str(), ec.value());
+      return false;
+    }
   }
 
   if (safe_mode) {
@@ -143,7 +170,7 @@ bool OnServices(const std::string& superkey) {
 bool OnBootCompleted(const std::string& superkey) {
   LOGI("on_boot_completed triggered!");
   RunStage("boot-completed", superkey, false);
-  ExecCommand({kDaemonPath, "uid-listener"});
+  RunUidMonitor();
   return true;
 }
 
@@ -189,7 +216,7 @@ bool StartUidListener() {
     size_t offset = 0;
     while (offset < static_cast<size_t>(len)) {
       auto* ev = reinterpret_cast<struct inotify_event*>(buffer + offset);
-      if (ev->len > 0 && ev->name) {
+      if (ev->len > 0) {
         std::string name = ev->name;
         if (name == "packages.list.tmp" || name == "packages.list") {
           if (!debounce) {

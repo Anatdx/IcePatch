@@ -18,6 +18,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
+#include <filesystem>
 #include <fstream>
 #include <limits.h>
 #include <sstream>
@@ -50,8 +51,8 @@ bool ValidateModuleId(const std::string& id) {
     return false;
   }
   for (char c : id) {
-    if (c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '"' || c == '<' ||
-        c == '>' || c == '|') {
+    if (static_cast<unsigned char>(c) < 0x20 || c == '/' || c == '\\' || c == ':' || c == '*' ||
+        c == '?' || c == '"' || c == '\'' || c == '<' || c == '>' || c == '|') {
       return false;
     }
   }
@@ -132,6 +133,37 @@ std::string EscapeJson(const std::string& input) {
         } else {
           out += c;
         }
+        break;
+    }
+  }
+  return out;
+}
+
+std::string EscapeLuaString(const std::string& input) {
+  std::string out;
+  out.reserve(input.size());
+  for (char c : input) {
+    switch (c) {
+      case '\\':
+        out += "\\\\";
+        break;
+      case '\'':
+        out += "\\'";
+        break;
+      case '\n':
+        out += "\\n";
+        break;
+      case '\r':
+        out += "\\r";
+        break;
+      case '\t':
+        out += "\\t";
+        break;
+      case '\0':
+        out += "\\0";
+        break;
+      default:
+        out += c;
         break;
     }
   }
@@ -254,20 +286,20 @@ bool RunLuaScript(const std::string& module_id, const std::string& function, boo
     std::string id = module_path.substr(module_path.find_last_of('/') + 1);
     std::string lua_file = module_path + "/" + id + ".lua";
     if (FileExists(lua_file)) {
-      script += "add_module('" + EscapeJson(id) + "','" + EscapeJson(module_path) + "')\n";
+      script += "add_module('" + EscapeLuaString(id) + "','" + EscapeLuaString(module_path) + "')\n";
     }
     return true;
   });
 
   if (on_each_module) {
     script += "for id, m in pairs(modules) do\n";
-    script += "  local f = m['" + EscapeJson(function) + "']\n";
-    script += "  if type(f) == 'function' then f('" + EscapeJson(arg) + "') end\n";
+    script += "  local f = m['" + EscapeLuaString(function) + "']\n";
+    script += "  if type(f) == 'function' then f('" + EscapeLuaString(arg) + "') end\n";
     script += "end\n";
   } else {
-    script += "local m = modules['" + EscapeJson(module_id) + "']\n";
+    script += "local m = modules['" + EscapeLuaString(module_id) + "']\n";
     script += "if not m then error('module not found') end\n";
-    script += "local f = m['" + EscapeJson(function) + "']\n";
+    script += "local f = m['" + EscapeLuaString(function) + "']\n";
     script += "if type(f) ~= 'function' then error('function not found') end\n";
     script += "f()\n";
   }
@@ -332,8 +364,19 @@ bool HandleUpdatedModules() {
     std::string module_dir = std::string(kModuleDir) + module_id;
     bool disabled = FileExists(module_dir + "/" + kDisableFileName);
     bool removed = FileExists(module_dir + "/" + kRemoveFileName);
-    ExecCommand({"/system/bin/sh", "-c", std::string("rm -rf ") + module_dir});
-    ExecCommand({"/system/bin/sh", "-c", std::string("mv ") + updated_module + " " + module_dir});
+
+    std::error_code ec;
+    std::filesystem::remove_all(module_dir, ec);
+    if (ec) {
+      LOGE("remove old module failed: %s (%d)", ec.message().c_str(), ec.value());
+      return false;
+    }
+    std::filesystem::rename(updated_module, module_dir, ec);
+    if (ec) {
+      LOGE("move updated module failed: %s (%d)", ec.message().c_str(), ec.value());
+      return false;
+    }
+
     if (removed) {
       EnsureFileExists(module_dir + "/" + kRemoveFileName);
     } else if (disabled) {

@@ -147,14 +147,20 @@ bool PreparePty() {
     UpdateWinSize(ptmx);
 
     std::thread stdin_pump([ptmx]() { PumpFd(STDIN_FILENO, ptmx); });
+    stdin_pump.detach();
     PumpFd(ptmx, STDOUT_FILENO);
-    stdin_pump.join();
     RestoreStdin(term_state);
     close(ptmx);
 
     int status = 0;
     waitpid(pid, &status, 0);
-    _exit(status);
+    if (WIFEXITED(status)) {
+      _exit(WEXITSTATUS(status));
+    }
+    if (WIFSIGNALED(status)) {
+      _exit(128 + WTERMSIG(status));
+    }
+    _exit(1);
   }
 
   setsid();

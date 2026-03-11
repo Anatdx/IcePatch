@@ -61,6 +61,21 @@ FetchContent_Declare(
 )
 FetchContent_Populate(lua)
 
+set(ZSTD_BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)
+set(ZSTD_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(ZSTD_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
+set(ZSTD_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(ZSTD_BUILD_STATIC ON CACHE BOOL "" FORCE)
+set(ZSTD_MULTITHREAD_SUPPORT OFF CACHE BOOL "" FORCE)
+set(ZSTD_PROGRAMS_LINK_SHARED OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(
+  zstd
+  URL https://github.com/facebook/zstd/releases/download/v1.5.7/zstd-1.5.7.tar.gz
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+FetchContent_Populate(zstd)
+add_subdirectory(${zstd_SOURCE_DIR}/build/cmake ${zstd_BINARY_DIR} EXCLUDE_FROM_ALL)
+
 set(LUA_SOURCES
   ${lua_SOURCE_DIR}/src/lapi.c
   ${lua_SOURCE_DIR}/src/lcode.c
@@ -109,6 +124,7 @@ set(SOURCES
   src/defs.cpp
   src/log.cpp
   src/utils.cpp
+  src/kpm.cpp
   src/assets.cpp
   src/supercall.cpp
   src/package.cpp
@@ -119,14 +135,39 @@ set(SOURCES
   src/restorecon.cpp
   src/pty.cpp
   src/apd.cpp
+  src/kpimg_inspect.cpp
+  src/kallsyms.cpp
+  src/bootimg.cpp
+)
+
+set(KPBOOT_SOURCES
+  src/kpboot/lib/bz2/blocksort.c
+  src/kpboot/lib/bz2/bzlib.c
+  src/kpboot/lib/bz2/compress.c
+  src/kpboot/lib/bz2/crctable.c
+  src/kpboot/lib/bz2/decompress.c
+  src/kpboot/lib/bz2/huffman.c
+  src/kpboot/lib/bz2/randtable.c
+  src/kpboot/lib/lz4/lz4.c
+  src/kpboot/lib/lz4/lz4frame.c
+  src/kpboot/lib/lz4/lz4hc.c
+  src/kpboot/lib/lz4/xxhash.c
+  src/kpboot/lib/sha/sha1.c
+  src/kpboot/lib/sha/sha256.c
+  src/kpboot/lib/xz/xz_crc32.c
+  src/kpboot/lib/xz/xz_dec_lzma2.c
+  src/kpboot/lib/xz/xz_dec_stream.c
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${GENERATED_DIR})
 
 add_executable(apd ${SOURCES})
+target_sources(apd PRIVATE ${KPBOOT_SOURCES})
 target_compile_definitions(apd PRIVATE APD_USE_LUA)
 target_link_libraries(apd PRIVATE lua)
+target_link_libraries(apd PRIVATE z)
+target_link_libraries(apd PRIVATE libzstd_static)
 
 if(NOT ANDROID)
   target_link_libraries(apd PRIVATE pthread)

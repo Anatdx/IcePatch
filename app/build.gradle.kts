@@ -166,7 +166,6 @@ android {
         }
         resources {
             excludes += "**"
-            merges += "META-INF/com/google/android/**"
         }
     }
 
@@ -253,13 +252,6 @@ registerDownloadTask(
     project = project
 )
 
-registerDownloadTask(
-    taskName = "downloadKptools",
-    srcUrl = "https://github.com/bmax121/KernelPatch/releases/download/$kernelPatchVersion/kptools-android",
-    destPath = "${project.projectDir}/libs/arm64-v8a/libkptools.so",
-    project = project
-)
-
 // Compat kp version less than 0.10.7
 // TODO: Remove in future
 registerDownloadTask(
@@ -269,21 +261,10 @@ registerDownloadTask(
     project = project
 )
 
-tasks.register<Copy>("mergeScripts") {
-    into("${project.projectDir}/src/main/resources/META-INF/com/google/android")
-    from(rootProject.file("${project.rootDir}/scripts/update_binary.sh")) {
-        rename { "update-binary" }
-    }
-    from(rootProject.file("${project.rootDir}/scripts/update_script.sh")) {
-        rename { "updater-script" }
-    }
-}
-
 tasks.getByName("preBuild").dependsOn(
     "downloadKpimg",
-    "downloadKptools",
     "downloadCompatKpatch",
-    "mergeScripts",
+    "buildApd",
 )
 
 tasks.register<Exec>("cmakeConfigureApd") {

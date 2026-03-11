@@ -18,6 +18,7 @@ import com.topjohnwu.superuser.io.SuFile
 import com.anatdx.icepatch.APApplication
 import com.anatdx.icepatch.APApplication.Companion.SUPERCMD
 import com.anatdx.icepatch.BuildConfig
+import com.anatdx.icepatch.Natives
 import com.anatdx.icepatch.apApp
 import com.anatdx.icepatch.ui.screen.MODULE_TYPE
 import java.io.File
@@ -267,7 +268,8 @@ fun installModule(
 ): Boolean {
     val resolver = apApp.contentResolver
     with(resolver.openInputStream(uri)) {
-        val file = File(apApp.cacheDir, "module_$type.zip")
+        val fileExt = if (type == MODULE_TYPE.KPM) "kpm" else "zip"
+        val file = File(apApp.cacheDir, "module_$type.$fileExt")
         file.outputStream().use { output ->
             this?.copyTo(output)
         }
@@ -292,7 +294,9 @@ fun installModule(
             result = shell.newJob().add(cmd).to(stdoutCallback, stderrCallback)
                     .exec().isSuccess
         } else {
-//            ZipUtils.
+            val rc = Natives.loadKernelPatchModule(file.absolutePath, "")
+            onStdout("load kpm rc: $rc")
+            result = rc == 0L
         }
 
         Log.i(TAG, "install $type module $uri result: $result")

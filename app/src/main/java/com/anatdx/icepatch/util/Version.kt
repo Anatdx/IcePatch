@@ -6,18 +6,12 @@ import com.anatdx.icepatch.APApplication
 import com.anatdx.icepatch.BuildConfig
 import com.anatdx.icepatch.Natives
 import com.anatdx.icepatch.apApp
-import com.anatdx.icepatch.util.shellForResult
 import com.anatdx.icepatch.util.withNewRootShell
 import com.topjohnwu.superuser.ShellUtils
-import org.ini4j.Ini
-import java.io.StringReader
-import com.anatdx.icepatch.ui.viewmodel.KPModel
-import com.topjohnwu.superuser.nio.ExtendedFile
-import com.topjohnwu.superuser.nio.FileSystemManager
 import com.topjohnwu.superuser.Shell
-import androidx.compose.runtime.mutableStateOf
 import java.io.File
-import android.system.Os
+import java.io.BufferedReader
+import java.io.InputStreamReader
 
 
 /**
@@ -25,6 +19,18 @@ import android.system.Os
  * version uint is hex number like: 0x000900
  */
 object Version {
+    private fun parseToolKv(lines: List<String>): Map<String, String> {
+        val out = mutableMapOf<String, String>()
+        for (line in lines) {
+            val trimmed = line.trimEnd()
+            if (trimmed.isEmpty()) continue
+            val parts = trimmed.split(Regex("\\s+"), limit = 2)
+            if (parts.size == 2) {
+                out[parts[0]] = parts[1].trim()
+            }
+        }
+        return out
+    }
 
     private fun string2UInt(ver: String): UInt {
         val v = ver.trim().split("-")[0]
@@ -34,52 +40,44 @@ object Version {
     }
 
     fun getKpImg(): String {
-        var shell: Shell = createRootShell()
-        var kimgInfo = mutableStateOf(KPModel.KImgInfo("", false))
-        var kpimgInfo = mutableStateOf(KPModel.KPImgInfo("", "", "", "", ""))
-        val patchDir: ExtendedFile = FileSystemManager.getLocal().getFile(apApp.filesDir.parent, "check")
+        val patchDir = File(apApp.filesDir.parent, "check")
         patchDir.deleteRecursively()
         patchDir.mkdirs()
-        val execs = listOf(
-            "libkptools.so", "libbusybox.so"
-        )
 
-        val info = apApp.applicationInfo
-        val libs = File(info.nativeLibraryDir).listFiles { _, name ->
-            execs.contains(name)
-        } ?: emptyArray()
+        val kpimg = File(patchDir, "kpimg")
+        apApp.assets.open("kpimg").writeTo(kpimg)
 
-        for (lib in libs) {
-            val name = lib.name.substring(3, lib.name.length - 3)
-            Os.symlink(lib.path, "$patchDir/$name")
+        val apd = File(apApp.applicationInfo.nativeLibraryDir, "libapd.so")
+        if (!apd.exists()) return "unknown"
+
+        return runCatching {
+            val process = ProcessBuilder(
+                apd.path,
+                "tool",
+                "inspect",
+                "--kpimg",
+                kpimg.absolutePath,
+            ).redirectErrorStream(true).start()
+
+            val lines = mutableListOf<String>()
+            BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
+                var line: String?
+                while (reader.readLine().also { line = it } != null) {
+                    line?.let { lines.add(it) }
+                }
+            }
+            val code = process.waitFor()
+            if (code != 0) {
+                Log.w("APatch", "getKpImg inspect failed, code=$code")
+                "unknown"
+            } else {
+                val kv = parseToolKv(lines)
+                kv["kernelpatch_compile"] ?: "unknown"
+            }
+        }.getOrElse {
+            Log.e("APatch", "getKpImg inspect failed", it)
+            "unknown"
         }
-
-        for (script in listOf(
-            "boot_patch.sh", "boot_unpatch.sh", "boot_extract.sh", "util_functions.sh", "kpimg"
-        )) {
-            val dest = File(patchDir, script)
-            apApp.assets.open(script).writeTo(dest)
-        }
-        val result = shellForResult(
-            shell, "cd $patchDir", "./kptools -l -k kpimg"
-        )
-
-        if (result.isSuccess) {
-            val ini = Ini(StringReader(result.out.joinToString("\n")))
-            val kpimg = ini["kpimg"]
-            if (kpimg != null) {
-                kpimgInfo.value = KPModel.KPImgInfo(
-                    kpimg["version"].toString(),
-                    kpimg["compile_time"].toString(),
-                    kpimg["config"].toString(),
-                    APApplication.superKey,     // current key
-                    kpimg["root_superkey"].toString()      // possibly empty
-                )
-                return kpimg["compile_time"].toString()
-            } 
-        } 
-
-        return "unknown"
     }
 
     fun uInt2String(ver: UInt): String {

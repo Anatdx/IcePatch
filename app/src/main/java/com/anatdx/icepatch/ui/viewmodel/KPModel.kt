@@ -47,6 +47,16 @@ object KPModel {
     @Immutable
     @Parcelize
     @Keep
+    data class GenericExtraInfo(
+        override var type: ExtraType,
+        override var name: String,
+        override var event: String,
+        override var args: String,
+    ) : IExtraInfo
+
+    @Immutable
+    @Parcelize
+    @Keep
     data class KPImgInfo(
         var version: String,
         var compileTime: String,

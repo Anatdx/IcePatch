@@ -27,6 +27,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Healing
 import androidx.compose.material.icons.filled.Memory
@@ -71,7 +72,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -163,6 +166,26 @@ fun Patches(mode: PatchesViewModel.PatchMode, autoStartPatch: Boolean = false) {
 
             // patch log
             if (viewModel.patching || viewModel.patchdone) {
+                val clipboardManager = LocalClipboardManager.current
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        onClick = {
+                            clipboardManager.setText(AnnotatedString(viewModel.patchLog))
+                        },
+                        enabled = viewModel.patchLog.isNotBlank()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ContentCopy,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(text = stringResource(id = R.string.crash_handle_copy))
+                    }
+                }
                 SelectionContainer {
                     Text(
                         modifier = Modifier.padding(8.dp),
@@ -437,6 +460,14 @@ private val LINUX_VERSION_REGEX = Regex("""Linux version ([^(]+)""")
 private fun formatKernelBanner(banner: String): String =
     LINUX_VERSION_REGEX.find(banner)?.groupValues?.get(1)?.trim() ?: banner
 
+private fun formatKpimgVersion(version: String): String {
+    val raw = version.trim()
+    if (raw.isEmpty()) return raw
+    if (raw.contains('.')) return raw
+    val hex = raw.removePrefix("0x").removePrefix("0X")
+    return runCatching { Version.uInt2String(hex.toUInt(16)) }.getOrElse { raw }
+}
+
 @Composable
 internal fun PatchInfoCard(
     kpimgInfo: KPModel.KPImgInfo,
@@ -471,9 +502,9 @@ internal fun PatchInfoCard(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = stringResource(id = R.string.patch_item_kpimg_version) + " " + Version.uInt2String(
-                            kpimgInfo.version.substring(2).toUInt(16)
-                        ) + "  " + stringResource(id = R.string.patch_item_kpimg_comile_time) + " " + kpimgInfo.compileTime,
+                        text = stringResource(id = R.string.patch_item_kpimg_version) + " " +
+                            formatKpimgVersion(kpimgInfo.version) + "  " +
+                            stringResource(id = R.string.patch_item_kpimg_comile_time) + " " + kpimgInfo.compileTime,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }

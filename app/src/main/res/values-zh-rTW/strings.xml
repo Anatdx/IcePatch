@@ -120,6 +120,13 @@
     <string name="patch_item_extra_event">事件：</string>
     <string name="patch_item_skey">超級密鑰</string>
     <string name="patch_item_set_skey_label">超級密鑰至少需要８個字符，並且同時包含數字和字母。</string>
+    <string name="patch_policy_title">策略</string>
+    <string name="patch_policy_summary">選擇執行期掛鉤策略。最小化較安全，傳統/完整模式相容性更高。</string>
+    <string name="patch_policy_profile_minimal">最小化（推薦）</string>
+    <string name="patch_policy_profile_legacy">傳統相容</string>
+    <string name="patch_policy_profile_full">完整功能掛鉤</string>
+    <string name="patch_policy_no_su">無 Root 模式（停用 SU 掛鉤）</string>
+    <string name="patch_policy_no_su_summary">保留 KernelPatch 核心能力，但停用內建 SU 能力。</string>
     <string name="patch_item_extra_args">參數：</string>
     <string name="patch_mode_uninstall_patch">模式：撤銷補丁</string>
     <string name="patch_mode_bootimg_patch">模式：修補</string>
@@ -155,6 +162,7 @@
     <string name="enable_web_debugging_summary">可用於偵錯WebUI，請僅在需要時啟用。</string>
     <string name="settings_donot_store_superkey">停用本機儲存密鑰</string>
     <string name="home_dialog_auth_fail_content">無法驗證超級密鑰，因此 IcePatch 無法正常運作。 \n以下是驗證失敗的一些可能原因： \n1. 您尚未使用 KernelPatch 程式修補啟動映像檔。 \n2. 修補後的啟動映像檔未刷入裝置。 \n3. 超級密鑰錯誤。 \n4. 您的裝置不支援 IcePatch 和 KernelPatch。 \n \n請檢查並再次嘗試。如果仍存在問題，您隨時可以在官方存放庫的議題頁面上提問。</string>
+    <string name="home_mode_rootless">無 Root</string>
     <string name="home_install_unknown_summary">點擊以安裝</string>
     <string name="home_device_info">裝置</string>
     <string name="home_new_apatch_found">新版本可用：%s，點選升級。</string>

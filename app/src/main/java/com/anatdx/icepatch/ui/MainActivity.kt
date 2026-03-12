@@ -193,12 +193,16 @@ class MainActivity : AppCompatActivity() {
                         .mapIndexed { index, destination -> destination.direction.route to index }
                         .toMap()
                 }
-                val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
-                val kPatchReady = state != APApplication.State.UNKNOWN_STATE
-                val aPatchReady = state == APApplication.State.ANDROIDPATCH_INSTALLED
-                val visibleDestinations = remember(state) {
+                val kpState by APApplication.kpStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
+                val apState by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
+                val rootlessMode by APApplication.rootlessModeLiveData.observeAsState(false)
+                val kPatchReady = kpState != APApplication.State.UNKNOWN_STATE
+                val aPatchReady = apState == APApplication.State.ANDROIDPATCH_INSTALLED
+                val visibleDestinations = remember(kpState, apState, rootlessMode) {
                     BottomBarDestination.entries.filter { destination ->
-                        !(destination.kPatchRequired && !kPatchReady) && !(destination.aPatchRequired && !aPatchReady)
+                        !(destination.kPatchRequired && !kPatchReady) &&
+                            !(destination.aPatchRequired && !aPatchReady) &&
+                            !(rootlessMode && (destination == BottomBarDestination.SuperUser || destination == BottomBarDestination.AModule))
                     }
                 }
 

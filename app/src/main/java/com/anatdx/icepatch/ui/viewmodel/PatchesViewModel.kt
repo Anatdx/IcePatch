@@ -9,6 +9,7 @@ import android.provider.MediaStore
 import android.system.Os
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.annotation.StringRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +46,19 @@ private const val PATCH_WORKSPACE_STAMP_FILE = ".patch_workspace_rev"
 private const val PATCH_WORKSPACE_REV = "2026-03-11-apd-native-bootflow-v1"
 
 class PatchesViewModel : ViewModel() {
+    enum class PolicyProfile(val cliValue: String, @StringRes val labelRes: Int) {
+        MINIMAL("minimal", R.string.patch_policy_profile_minimal),
+        LEGACY("legacy", R.string.patch_policy_profile_legacy),
+        FULL("full", R.string.patch_policy_profile_full);
+
+        companion object {
+            fun fromCliValue(raw: String): PolicyProfile? {
+                val normalized = raw.trim().lowercase()
+                return entries.firstOrNull { it.cliValue == normalized }
+            }
+        }
+    }
+
     private fun parseToolKv(lines: List<String>): Map<String, String> {
         val out = mutableMapOf<String, String>()
         for (line in lines) {
@@ -108,6 +122,50 @@ class PatchesViewModel : ViewModel() {
         return extras
     }
 
+    private fun parsePolicyState(lines: List<String>) {
+        val kv = parseToolKv(lines)
+        val additionalRegex = Regex("""additional\[(\d+)]""")
+        val additional = mutableMapOf<Int, String>()
+        for ((key, value) in kv) {
+            val m = additionalRegex.matchEntire(key) ?: continue
+            val idx = m.groupValues[1].toIntOrNull() ?: continue
+            additional[idx] = value.trim()
+        }
+        if (additional.isEmpty()) return
+
+        var parsedProfile: PolicyProfile? = null
+        var parsedNoSu = false
+        for (entry in additional.toSortedMap().values) {
+            val lower = entry.trim().lowercase()
+            if (lower.startsWith("policy=") || lower.startsWith("profile=")) {
+                val value = lower.substringAfter('=')
+                parsedProfile = PolicyProfile.fromCliValue(value) ?: parsedProfile
+                continue
+            }
+            if (lower.startsWith("mode=")) {
+                val mode = lower.substringAfter('=')
+                if (mode == "no-su" || mode == "no_su" || mode == "nosu") {
+                    parsedNoSu = true
+                } else {
+                    parsedProfile = PolicyProfile.fromCliValue(mode) ?: parsedProfile
+                }
+            }
+        }
+
+        parsedProfile?.let { policyProfile = it }
+        policyNoSu = parsedNoSu
+    }
+
+    private fun buildPolicyPatchArgs(): List<String> {
+        val args = mutableListOf<String>()
+        args.add("--policy-profile")
+        args.add(policyProfile.cliValue)
+        if (policyNoSu) {
+            args.add("--policy-no-su")
+        }
+        return args
+    }
+
     private fun buildExtraPatchArgs(): List<String> {
         val args = mutableListOf<String>()
 
@@ -163,6 +221,8 @@ class PatchesViewModel : ViewModel() {
     var kimgInfo by mutableStateOf(KPModel.KImgInfo("", false))
     var kpimgInfo by mutableStateOf(KPModel.KPImgInfo("", "", "", "", ""))
     var superkey by mutableStateOf(APApplication.superKey)
+    var policyProfile by mutableStateOf(PolicyProfile.MINIMAL)
+    var policyNoSu by mutableStateOf(false)
     var existedExtras = mutableStateListOf<KPModel.IExtraInfo>()
     var newExtras = mutableStateListOf<KPModel.IExtraInfo>()
     var newExtrasFileName = mutableListOf<String>()
@@ -320,27 +380,34 @@ class PatchesViewModel : ViewModel() {
     }
 
     private fun flashBootImage(newBootPath: String, bootDevice: String, logs: CallbackList<String>): Shell.Result {
-        val cmd = buildString {
-            append("if [ -b ")
-            append(shellQuote(bootDevice))
-            append(" ] || [ -c ")
-            append(shellQuote(bootDevice))
-            append(" ]; then ")
-            append("blockdev --setrw ")
-            append(shellQuote(bootDevice))
-            append(" 2>/dev/null || true; ")
-            append("dd if=")
-            append(shellQuote(newBootPath))
-            append(" of=")
-            append(shellQuote(bootDevice))
-            append(" bs=4096 iflag=fullblock conv=notrunc,fsync; ")
-            append("sync; ")
-            append("else cp ")
-            append(shellQuote(newBootPath))
-            append(" ")
-            append(shellQuote(bootDevice))
-            append("; fi")
-        }
+        val qBootDevice = shellQuote(bootDevice)
+        val qNewBootPath = shellQuote(newBootPath)
+        val cmd = """
+            if [ -b $qBootDevice ] || [ -c $qBootDevice ]; then
+              blockdev --setrw $qBootDevice 2>/dev/null || true
+              write_ok=1
+              if dd if=$qNewBootPath of=$qBootDevice bs=4096 iflag=fullblock conv=notrunc,fsync; then
+                echo "- Flash writer: dd(iflag=fullblock)"
+                write_ok=0
+              fi
+              if [ "${'$'}write_ok" -ne 0 ] && dd if=$qNewBootPath of=$qBootDevice bs=4096 conv=notrunc,fsync; then
+                echo "- Flash writer: dd(conv=notrunc,fsync)"
+                write_ok=0
+              fi
+              if [ "${'$'}write_ok" -ne 0 ] && dd if=$qNewBootPath of=$qBootDevice bs=4096; then
+                echo "- Flash writer: dd(basic)"
+                write_ok=0
+              fi
+              if [ "${'$'}write_ok" -ne 0 ] && cat $qNewBootPath > $qBootDevice; then
+                echo "- Flash writer: cat(redirect)"
+                write_ok=0
+              fi
+              sync
+              [ "${'$'}write_ok" -eq 0 ]
+            else
+              cp $qNewBootPath $qBootDevice
+            fi
+        """.trimIndent()
         return shell.newJob().add(cmd).to(logs, logs).exec()
     }
 
@@ -367,7 +434,7 @@ class PatchesViewModel : ViewModel() {
         patchDir.deleteRecursively()
         patchDir.mkdirs()
         val execs = listOf(
-            "libapd.so", "libbusybox.so", "libkpatch.so", "libbootctl.so"
+            "libapd.so", "libbusybox.so", "libbootctl.so"
         )
         error = ""
 
@@ -461,6 +528,7 @@ class PatchesViewModel : ViewModel() {
             "${shellQuote(apdCmd)} tool list --image kernel",
         )
         if (listResult.isSuccess) {
+            parsePolicyState(listResult.out)
             existedExtras.addAll(parseEmbeddedExtras(listResult.out))
         } else {
             Log.w(TAG, "parse embedded extras failed: ${listResult.err.joinToString("\\n")}")
@@ -591,6 +659,8 @@ class PatchesViewModel : ViewModel() {
         bootDev = ""
         kimgInfo = KPModel.KImgInfo("", false)
         kpimgInfo = KPModel.KPImgInfo("", "", "", "", "")
+        policyProfile = PolicyProfile.MINIMAL
+        policyNoSu = false
         error = ""
         existedExtras.clear()
         newExtras.clear()
@@ -805,7 +875,9 @@ class PatchesViewModel : ViewModel() {
             }
             val bootImageArg = srcBoot.path
             val apdPath = resolveApdOverridePath()
+            val policyArgs = buildPolicyPatchArgs()
             val extraArgs = buildExtraPatchArgs()
+            val patchedKernelOut = "kernel.patched.${System.currentTimeMillis()}"
 
             if (mode == PatchMode.PATCH_ONLY && !File(bootImageArg).exists()) {
                 error = "Selected boot image does not exist: $bootImageArg"
@@ -904,6 +976,8 @@ class PatchesViewModel : ViewModel() {
             }
 
             if (succ) {
+                logs.add("- Policy profile: ${policyProfile.cliValue}, no-su: ${if (policyNoSu) "on" else "off"}")
+                logs.add("- Patch output file: $patchedKernelOut")
                 val patchArgs = mutableListOf(
                     "tool",
                     "patch",
@@ -912,17 +986,18 @@ class PatchesViewModel : ViewModel() {
                     "--kpimg",
                     "kpimg",
                     "--out",
-                    "kernel",
+                    patchedKernelOut,
                     "--skey",
                     superkey,
                 )
+                patchArgs.addAll(policyArgs)
                 patchArgs.addAll(extraArgs)
                 succ = runApd(patchArgs, "Patch kernel failed")
             }
 
             if (succ) {
                 succ = runApd(
-                    listOf("tool", "boot", "repack", "--boot", bootImageArg, "--kernel", "kernel", "--out", "new-boot.img"),
+                    listOf("tool", "boot", "repack", "--boot", bootImageArg, "--kernel", patchedKernelOut, "--out", "new-boot.img"),
                     "Repack boot image failed",
                 )
             }

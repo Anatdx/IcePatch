@@ -213,8 +213,9 @@ fun InstallModeSelectScreen(
                             )
                         }
 
-                        if (mode != PatchesViewModel.PatchMode.UNPATCH && viewModel.kimgInfo.banner.isNotEmpty()) {
+                        if (mode != PatchesViewModel.PatchMode.UNPATCH) {
                             SetSuperKeyView(viewModel)
+                            PatchPolicyView(viewModel)
                         }
 
                         if (mode == PatchesViewModel.PatchMode.PATCH_AND_INSTALL || mode == PatchesViewModel.PatchMode.INSTALL_TO_NEXT_SLOT) {

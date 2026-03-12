@@ -1,0 +1,3 @@
+[submodule "external/KernelPatch"]
+	path = external/KernelPatch
+	url = https://github.com/Anatdx/KernelPatch.git

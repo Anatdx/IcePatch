@@ -2,7 +2,6 @@
 
 import com.android.build.gradle.tasks.PackageAndroidArtifact
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import java.net.URI
 
 plugins {
     alias(libs.plugins.agp.app)
@@ -163,6 +162,7 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = true
+            excludes += setOf("**/libkpatch.so", "**/libkptools.so")
         }
         resources {
             excludes += "**"
@@ -213,57 +213,107 @@ kotlin {
     }
 }
 
-fun registerDownloadTask(
-    taskName: String, srcUrl: String, destPath: String, project: Project
-) {
-    project.tasks.register(taskName) {
-        val destFile = File(destPath)
+val kernelPatchSubmoduleDir = File(rootDir, "external/KernelPatch")
+val kernelPatchKernelDir = File(kernelPatchSubmoduleDir, "kernel")
+val kernelPatchKpimgOutput = File(kernelPatchKernelDir, "kpimg")
+val appKpimgAsset = File(projectDir, "src/main/assets/kpimg")
+val kpMemcpyShimPath = File(kernelPatchKernelDir, "patch/common/kp_memcpy_shim.c")
+val kpMemcpyShimObjPath = File(kernelPatchKernelDir, "patch/common/kp_memcpy_shim.o")
 
-        doLast {
-            if (!destFile.exists() || isFileUpdated(srcUrl, destFile)) {
-                println(" - Downloading $srcUrl to ${destFile.absolutePath}")
-                downloadFile(srcUrl, destFile)
-                println(" - Download completed.")
-            } else {
-                println(" - File is up-to-date, skipping download.")
+fun hasCommandInPath(command: String): Boolean {
+    val path = System.getenv("PATH") ?: return false
+    return path.split(File.pathSeparator)
+        .map { File(it, command) }
+        .any { it.isFile && it.canExecute() }
+}
+
+fun resolveKernelPatchTargetCompile(): String {
+    val fromProp = providers.gradleProperty("KP_TARGET_COMPILE").orNull?.trim().orEmpty()
+    if (fromProp.isNotEmpty()) return fromProp
+    val fromEnv = System.getenv("KP_TARGET_COMPILE")?.trim().orEmpty()
+    if (fromEnv.isNotEmpty()) return fromEnv
+
+    return when {
+        hasCommandInPath("aarch64-none-elf-gcc") -> "aarch64-none-elf-"
+        hasCommandInPath("aarch64-elf-gcc") -> "aarch64-elf-"
+        else -> throw GradleException(
+            "No bare-metal AArch64 GCC found. Install a toolchain and set KP_TARGET_COMPILE " +
+                "(for example: aarch64-none-elf-)."
+        )
+    }
+}
+
+fun runCommandOrThrow(workingDir: File, vararg command: String) {
+    val process = ProcessBuilder(*command)
+        .directory(workingDir)
+        .redirectErrorStream(true)
+        .start()
+    process.inputStream.bufferedReader().useLines { lines ->
+        lines.forEach(::println)
+    }
+    val exitCode = process.waitFor()
+    if (exitCode != 0) {
+        throw GradleException("Command failed ($exitCode): ${command.joinToString(" ")}")
+    }
+}
+
+tasks.register<Exec>("syncKernelPatchSubmodule") {
+    workingDir = rootDir
+    commandLine("git", "submodule", "update", "--init", "--recursive", "--", "external/KernelPatch")
+}
+
+tasks.register("buildKpimg") {
+    dependsOn("syncKernelPatchSubmodule")
+    inputs.dir(kernelPatchKernelDir)
+    outputs.file(appKpimgAsset)
+    doLast {
+        if (!kernelPatchKernelDir.isDirectory) {
+            throw GradleException("KernelPatch submodule is missing: ${kernelPatchKernelDir.absolutePath}")
+        }
+
+        val targetCompile = resolveKernelPatchTargetCompile()
+        val jobs = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+
+        // Newer toolchains may emit unresolved memcpy for structure copies in map.c.
+        kpMemcpyShimPath.writeText(
+            """
+            #include <stdint.h>
+            typedef unsigned long size_t;
+            void *memcpy(void *dst, const void *src, size_t n) {
+                unsigned char *d = (unsigned char *)dst;
+                const unsigned char *s = (const unsigned char *)src;
+                while (n--) {
+                    *d++ = *s++;
+                }
+                return dst;
             }
+            """.trimIndent() + "\n"
+        )
+
+        try {
+            runCommandOrThrow(kernelPatchKernelDir, "make", "TARGET_COMPILE=$targetCompile", "clean")
+            runCommandOrThrow(
+                kernelPatchKernelDir,
+                "make",
+                "TARGET_COMPILE=$targetCompile",
+                "ANDROID=1",
+                "-j$jobs",
+            )
+        } finally {
+            kpMemcpyShimPath.delete()
+            kpMemcpyShimObjPath.delete()
         }
+
+        if (!kernelPatchKpimgOutput.isFile) {
+            throw GradleException("kpimg build finished but output is missing: ${kernelPatchKpimgOutput.absolutePath}")
+        }
+        appKpimgAsset.parentFile.mkdirs()
+        kernelPatchKpimgOutput.copyTo(appKpimgAsset, overwrite = true)
     }
 }
-
-fun isFileUpdated(url: String, localFile: File): Boolean {
-    val connection = URI.create(url).toURL().openConnection()
-    val remoteLastModified = connection.getHeaderFieldDate("Last-Modified", 0L)
-    return remoteLastModified > localFile.lastModified()
-}
-
-fun downloadFile(url: String, destFile: File) {
-    URI.create(url).toURL().openStream().use { input ->
-        destFile.outputStream().use { output ->
-            input.copyTo(output)
-        }
-    }
-}
-
-registerDownloadTask(
-    taskName = "downloadKpimg",
-    srcUrl = "https://github.com/bmax121/KernelPatch/releases/download/$kernelPatchVersion/kpimg-android",
-    destPath = "${project.projectDir}/src/main/assets/kpimg",
-    project = project
-)
-
-// Compat kp version less than 0.10.7
-// TODO: Remove in future
-registerDownloadTask(
-    taskName = "downloadCompatKpatch",
-    srcUrl = "https://github.com/bmax121/KernelPatch/releases/download/0.10.7/kpatch-android",
-    destPath = "${project.projectDir}/libs/arm64-v8a/libkpatch.so",
-    project = project
-)
 
 tasks.getByName("preBuild").dependsOn(
-    "downloadKpimg",
-    "downloadCompatKpatch",
+    "buildKpimg",
     "buildApd",
 )
 

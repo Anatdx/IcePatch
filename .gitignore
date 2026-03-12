@@ -6,6 +6,11 @@ local.properties
 build
 captures
 .cxx
+apd/build/
+apd/build-*/
+apd/cmake-build-*/
+apd/.cxx/
+app/.cxx/
 key.jks
 key.jks.base64.txt
 .vscode

@@ -22,8 +22,13 @@ void PrintUsage() {
 }
 
 void SetIdentity(uid_t uid, gid_t gid) {
+#ifdef __linux__
   setresgid(gid, gid, gid);
   setresuid(uid, uid, uid);
+#else
+  setgid(gid);
+  setuid(uid);
+#endif
 }
 
 void AddPathEnv(const std::string& path) {

@@ -1,5 +1,35 @@
 #include "event.hpp"
 
+#include "log.hpp"
+
+#ifndef __linux__
+
+namespace apd {
+
+bool OnPostDataFs(const std::string&) {
+  LOGE("post-fs-data is unsupported on this platform");
+  return false;
+}
+
+bool OnServices(const std::string&) {
+  LOGE("services is unsupported on this platform");
+  return false;
+}
+
+bool OnBootCompleted(const std::string&) {
+  LOGE("boot-completed is unsupported on this platform");
+  return false;
+}
+
+bool StartUidListener() {
+  LOGE("uid-listener is unsupported on this platform");
+  return false;
+}
+
+}  // namespace apd
+
+#else
+
 #include "assets.hpp"
 #include "defs.hpp"
 #include "log.hpp"
@@ -236,3 +266,5 @@ bool StartUidListener() {
 }
 
 }  // namespace apd
+
+#endif

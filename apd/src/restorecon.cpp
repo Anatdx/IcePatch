@@ -18,10 +18,17 @@ constexpr const char* kUnlabelCon = "u:object_r:unlabeled:s0";
 constexpr const char* kSelinuxXattr = "security.selinux";
 
 bool LSetFileCon(const std::string& path, const char* con) {
+#ifdef __linux__
   return lsetxattr(path.c_str(), kSelinuxXattr, con, std::strlen(con), 0) == 0;
+#else
+  (void)path;
+  (void)con;
+  return true;
+#endif
 }
 
 std::string LGetFileCon(const std::string& path) {
+#ifdef __linux__
   char buf[256] = {0};
   ssize_t len = lgetxattr(path.c_str(), kSelinuxXattr, buf, sizeof(buf) - 1);
   if (len <= 0) {
@@ -29,6 +36,10 @@ std::string LGetFileCon(const std::string& path) {
   }
   buf[len] = '\0';
   return std::string(buf);
+#else
+  (void)path;
+  return "";
+#endif
 }
 
 void RestoreSysconIfUnlabeled(const std::string& dir) {
@@ -84,6 +95,10 @@ bool RestoreSyscon(const std::string& dir) {
 }
 
 bool Restorecon() {
+#ifndef __linux__
+  LOGW("restorecon is unsupported on this platform; using no-op");
+  return true;
+#endif
   LSetFileCon(kDaemonPath, kAdbCon);
   RestoreSysconIfUnlabeled(kModuleDir);
   return true;

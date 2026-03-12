@@ -140,6 +140,13 @@
     <string name="patch_item_skey">超级密钥</string>
     <string name="patch_item_existed_extra_kpm">已嵌入的</string>
     <string name="patch_item_set_skey_label">超级密钥长度应在 8-63 个字符，包含数字和字母，但不包含特殊字符。</string>
+    <string name="patch_policy_title">策略</string>
+    <string name="patch_policy_summary">选择运行时挂钩策略。最小化更安全，传统/完整模式兼容性更高。</string>
+    <string name="patch_policy_profile_minimal">最小化（推荐）</string>
+    <string name="patch_policy_profile_legacy">传统兼容</string>
+    <string name="patch_policy_profile_full">完整功能挂钩</string>
+    <string name="patch_policy_no_su">无 Root 模式（禁用 SU 挂钩）</string>
+    <string name="patch_policy_no_su_summary">保留 KernelPatch 核心能力，但禁用内置 SU 能力。</string>
     <string name="patch_mode_uninstall_patch">还原初始内核镜像</string>
     <string name="patch_start_unpatch_btn">取消修补</string>
     <string name="hide_apatch_dialog_new_manager_name">新管理器名称</string>
@@ -203,6 +210,7 @@
     <string name="enable_web_debugging_summary">可用于调试 WebUI，请仅在需要时启用。</string>
     <string name="settings_donot_store_superkey">不存储超级密钥</string>
     <string name="settings_donot_store_superkey_summary">每次打开管理器时验证超级密钥</string>
+    <string name="home_mode_rootless">无 Root</string>
     <string name="home_device_info">设备</string>
     <string name="home_system_version">系统版本</string>
     <string name="home_kpatch_version">KernelPatch 版本</string>

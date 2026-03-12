@@ -14,6 +14,8 @@
 #include "utils.hpp"
 
 #include <cstdio>
+#include <algorithm>
+#include <cctype>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -34,6 +36,98 @@ std::string Basename(const std::string& path) {
     return path;
   }
   return path.substr(pos + 1);
+}
+
+std::string ToLowerAscii(std::string value) {
+  std::transform(value.begin(), value.end(), value.begin(),
+                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  return value;
+}
+
+bool IsPolicyBoolText(const std::string& value) {
+  const std::string lower = ToLowerAscii(value);
+  return lower == "1" || lower == "0" || lower == "y" || lower == "n" ||
+         lower == "yes" || lower == "no" || lower == "on" || lower == "off" ||
+         lower == "true" || lower == "false" ||
+         lower == "enable" || lower == "enabled" ||
+         lower == "disable" || lower == "disabled";
+}
+
+bool NormalizePolicySpec(const std::string& spec,
+                         std::string* out_addition,
+                         std::string* out_error) {
+  if (out_addition == nullptr || out_error == nullptr) {
+    return false;
+  }
+  *out_addition = "";
+  *out_error = "";
+
+  std::string raw = ToLowerAscii(spec);
+  if (raw.empty()) {
+    *out_error = "empty policy";
+    return false;
+  }
+
+  if (raw == "minimal" || raw == "legacy" || raw == "full") {
+    *out_addition = "policy=" + raw;
+    return true;
+  }
+  if (raw == "no-su" || raw == "no_su" || raw == "nosu") {
+    *out_addition = "mode=no-su";
+    return true;
+  }
+
+  const size_t eq = raw.find('=');
+  if (eq == std::string::npos || eq == 0 || eq + 1 >= raw.size()) {
+    *out_error = "expect minimal|legacy|full|no-su or KEY=VALUE";
+    return false;
+  }
+
+  const std::string key = raw.substr(0, eq);
+  const std::string value = raw.substr(eq + 1);
+  if (key == "policy" || key == "profile") {
+    if (value != "minimal" && value != "legacy" && value != "full") {
+      *out_error = "policy/profile must be minimal|legacy|full";
+      return false;
+    }
+    *out_addition = "policy=" + value;
+    return true;
+  }
+
+  if (key == "mode") {
+    if (value != "minimal" && value != "legacy" &&
+        value != "full" && value != "no-su") {
+      *out_error = "mode must be minimal|legacy|full|no-su";
+      return false;
+    }
+    *out_addition = key + "=" + value;
+    return true;
+  }
+
+  if (key == "no_su") {
+    if (!IsPolicyBoolText(value)) {
+      *out_error = "no_su must be boolean";
+      return false;
+    }
+    *out_addition = key + "=" + value;
+    return true;
+  }
+
+  if (key.rfind("feature.", 0) == 0) {
+    if (key.size() <= 8) {
+      *out_error = "missing feature name after feature.";
+      return false;
+    }
+    if (!IsPolicyBoolText(value)) {
+      *out_error = "feature value must be boolean";
+      return false;
+    }
+    *out_addition = key + "=" + value;
+    return true;
+  }
+
+  *out_error = "unsupported policy key: " + key;
+  return false;
 }
 
 void PrintUsage() {
@@ -61,6 +155,8 @@ void PrintUsage() {
       "  tool version --kpimg <kpimg>\n"
       "  tool patch --image <kernel_image> --kpimg <kpimg> --out <output> --skey <key> [--dry-run]\n"
       "    optional: --reuse-config-from <patched_kernel_image> --root-skey --addition <KEY=VALUE>\n"
+      "              --policy <minimal|legacy|full|no-su|KEY=VALUE>\n"
+      "              --policy-profile <minimal|legacy|full> --policy-no-su\n"
       "              --embed-extra-path <PATH> | --embeded-extra-name <NAME>\n"
       "              --extra-type <kpm|shell|exec|raw|android_rc> --extra-name <NAME>\n"
       "              --extra-event <EVENT> --extra-args <ARGS> --extra-detach\n"
@@ -255,6 +351,17 @@ int RunCli(int argc, char** argv) {
       std::vector<std::string> additions;
       std::vector<PatchExtraConfig> extra_configs;
       PatchExtraConfig* cur_extra = nullptr;
+      auto append_policy = [&](const std::string& spec) -> bool {
+        std::string addition;
+        std::string error;
+        if (!NormalizePolicySpec(spec, &addition, &error)) {
+          std::fprintf(stderr, "patch failed: invalid --policy '%s': %s\n",
+                       spec.c_str(), error.c_str());
+          return false;
+        }
+        additions.push_back(addition);
+        return true;
+      };
       for (size_t i = 2; i < args.size();) {
         if (args[i] == "--dry-run") {
           dry_run = true;
@@ -275,6 +382,13 @@ int RunCli(int argc, char** argv) {
           ++i;
           continue;
         }
+        if (args[i] == "--policy-no-su") {
+          if (!append_policy("mode=no-su")) {
+            return 1;
+          }
+          ++i;
+          continue;
+        }
         if (i + 1 >= args.size()) {
           PrintUsage();
           return 1;
@@ -291,6 +405,14 @@ int RunCli(int argc, char** argv) {
           reuse_config_from = args[i + 1];
         } else if (args[i] == "--addition") {
           additions.push_back(args[i + 1]);
+        } else if (args[i] == "--policy") {
+          if (!append_policy(args[i + 1])) {
+            return 1;
+          }
+        } else if (args[i] == "--policy-profile") {
+          if (!append_policy("policy=" + args[i + 1])) {
+            return 1;
+          }
         } else if (args[i] == "--embed-extra-path") {
           PatchExtraConfig cfg;
           cfg.is_path = true;

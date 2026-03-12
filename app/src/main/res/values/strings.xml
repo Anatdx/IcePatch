@@ -82,6 +82,9 @@
     <string name="home_install_unknown_summary">Click to install</string>
     <string name="home_click_to_install">Click to install</string>
     <string name="home_working">Working 😋🧊</string>
+    <string name="home_mode_full">Full</string>
+    <string name="home_mode_kernelpatch">KernelPatch</string>
+    <string name="home_mode_rootless">Rootless</string>
 
     <string name="home_installing">Installing</string>
     <string name="home_need_update">New version available</string>
@@ -130,6 +133,13 @@
     <string name="patch_item_extra_event">Event:</string>
     <string name="patch_item_skey">SuperKey</string>
     <string name="patch_item_set_skey_label">The SuperKey should be 8-63 characters long and include numbers and letters, but no special characters.</string>
+    <string name="patch_policy_title">Policy</string>
+    <string name="patch_policy_summary">Choose runtime hook profile. Minimal is safer, Legacy/Full are for compatibility.</string>
+    <string name="patch_policy_profile_minimal">Minimal (recommended)</string>
+    <string name="patch_policy_profile_legacy">Legacy compatibility</string>
+    <string name="patch_policy_profile_full">Full feature hooks</string>
+    <string name="patch_policy_no_su">No Root mode (disable SU hooks)</string>
+    <string name="patch_policy_no_su_summary">Keep KernelPatch core features but disable built-in SU capability.</string>
 
     <string name="home_kernel">Kernel version</string>
     <string name="home_manager_version">Manager version</string>

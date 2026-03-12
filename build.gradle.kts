@@ -4,7 +4,20 @@ plugins {
     alias(libs.plugins.kotlin.compose.compiler) apply false
 }
 
-project.ext.set("kernelPatchVersion", "0.13.0")
+fun readKernelPatchVersion(): String {
+    val versionFile = file("external/KernelPatch/version")
+    if (!versionFile.isFile) return "0.13.0"
+    val raw = versionFile.readText()
+    val major = Regex("""#define\s+MAJOR\s+(\d+)""").find(raw)?.groupValues?.get(1)
+    val minor = Regex("""#define\s+MINOR\s+(\d+)""").find(raw)?.groupValues?.get(1)
+    val patch = Regex("""#define\s+PATCH\s+(\d+)""").find(raw)?.groupValues?.get(1)
+    if (major != null && minor != null && patch != null) {
+        return "$major.$minor.$patch"
+    }
+    return raw.trim().ifEmpty { "0.13.0" }
+}
+
+project.ext.set("kernelPatchVersion", readKernelPatchVersion())
 
 val androidMinSdkVersion by extra(26)
 val androidTargetSdkVersion by extra(36)

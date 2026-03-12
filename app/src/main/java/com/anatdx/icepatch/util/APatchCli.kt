@@ -30,10 +30,6 @@ import java.util.zip.ZipFile
 
 private const val TAG = "APatchCli"
 
-private fun getKPatchPath(): String {
-    return apApp.applicationInfo.nativeLibraryDir + File.separator + "libkpatch.so"
-}
-
 class RootShellInitializer : Shell.Initializer() {
     override fun onInit(context: Context, shell: Shell): Boolean {
         shell.newJob().add("export PATH=\$PATH:/system_ext/bin:/vendor/bin").exec()
@@ -51,29 +47,15 @@ fun createRootShell(globalMnt: Boolean = false): Shell {
     } catch (e: Throwable) {
         Log.e(TAG, "su failed: ", e)
         return try {
-            Log.e(TAG, "retry compat kpatch su")
+            Log.e(TAG, "retry su: ", e)
             if (globalMnt) {
-                builder.build(
-                    getKPatchPath(), APApplication.superKey, "su", "-Z", APApplication.MAGISK_SCONTEXT, "--mount-master"
-                )
-            }else{
-                builder.build(
-                    getKPatchPath(), APApplication.superKey, "su", "-Z", APApplication.MAGISK_SCONTEXT
-                )
+                builder.build("su", "-mm")
+            } else {
+                builder.build("su")
             }
         } catch (e: Throwable) {
-            Log.e(TAG, "retry kpatch su failed: ", e)
-            return try {
-                Log.e(TAG, "retry su: ", e)
-                if (globalMnt) {
-                    builder.build("su","-mm")
-                }else{
-                    builder.build("su")
-                }
-            } catch (e: Throwable) {
-                Log.e(TAG, "retry su failed: ", e)
-                return builder.build("sh")
-            }
+            Log.e(TAG, "retry su failed: ", e)
+            return builder.build("sh")
         }
     }
 }
@@ -86,19 +68,13 @@ private fun createMainRootShell() : Shell {
         builder.build()
     } catch (e: Throwable) {
         Log.e(TAG, "su failed: ", e)
-        builder.setCommands(getKPatchPath(), APApplication.superKey, "su", "-Z", APApplication.MAGISK_SCONTEXT)
+        builder.setCommands("su")
         try {
             builder.build()
         } catch (e: Throwable) {
-            Log.e(TAG, "retry kpatch su failed: ", e)
-            builder.setCommands("su")
-            try {
-                builder.build()
-            } catch (e: Throwable) {
-                Log.e(TAG, "retry su failed: ", e)
-                builder.setCommands("sh")
-                builder.build()
-            }
+            Log.e(TAG, "retry su failed: ", e)
+            builder.setCommands("sh")
+            builder.build()
         }
     }
 
@@ -171,19 +147,11 @@ fun tryGetRootShell(): Shell {
     } catch (e: Throwable) {
         Log.e(TAG, "su failed: ", e)
         return try {
-            Log.e(TAG, "retry compat kpatch su")
-            builder.build(
-                getKPatchPath(), APApplication.superKey, "su", "-Z", APApplication.MAGISK_SCONTEXT
-            )
+            Log.e(TAG, "retry su: ", e)
+            builder.build("su")
         } catch (e: Throwable) {
-            Log.e(TAG, "retry kpatch su failed: ", e)
-            return try {
-                Log.e(TAG, "retry su: ", e)
-                builder.build("su")
-            } catch (e: Throwable) {
-                Log.e(TAG, "retry su failed: ", e)
-                builder.build("sh")
-            }
+            Log.e(TAG, "retry su failed: ", e)
+            builder.build("sh")
         }
     }
 }

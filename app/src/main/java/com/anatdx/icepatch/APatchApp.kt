@@ -90,6 +90,9 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
         private val _apStateLiveData = MutableLiveData(State.UNKNOWN_STATE)
         val apStateLiveData: LiveData<State> = _apStateLiveData
 
+        private val _rootlessModeLiveData = MutableLiveData(false)
+        val rootlessModeLiveData: LiveData<Boolean> = _rootlessModeLiveData
+
         @Suppress("DEPRECATION")
         fun uninstallApatch() {
             if (_apStateLiveData.value != State.ANDROIDPATCH_INSTALLED) return
@@ -177,6 +180,7 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
                     if (ready) State.KERNELPATCH_INSTALLED else State.UNKNOWN_STATE
                 _apStateLiveData.value =
                     if (ready) State.ANDROIDPATCH_NOT_INSTALLED else State.UNKNOWN_STATE
+                _rootlessModeLiveData.value = false
                 Log.d(TAG, "state: " + _kpStateLiveData.value)
                 if (!ready) return
 
@@ -187,8 +191,11 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
                     val rc = Natives.su(0, null)
                     if (!rc) {
                         Log.e(TAG, "Native.su failed")
+                        _rootlessModeLiveData.postValue(true)
+                        _apStateLiveData.postValue(State.ANDROIDPATCH_NOT_INSTALLED)
                         return@thread
                     }
+                    _rootlessModeLiveData.postValue(false)
 
                     // KernelPatch version
                     //val buildV = Version.buildKPVUInt()

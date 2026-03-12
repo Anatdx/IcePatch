@@ -130,6 +130,7 @@ fun HomeScreen(navigator: DestinationsNavigator) {
 
     val kpState by APApplication.kpStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     val apState by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
+    val rootlessMode by APApplication.rootlessModeLiveData.observeAsState(false)
     val appPrefs = APApplication.sharedPreferences
     var showSignatureWarning by remember {
         mutableStateOf(appPrefs.getBoolean("signature_invalid_warning", false))
@@ -165,15 +166,15 @@ fun HomeScreen(navigator: DestinationsNavigator) {
                 )
             }
             BackupWarningCard()
-            KStatusCard(kpState, apState, navigator)
-            if (kpState != APApplication.State.UNKNOWN_STATE && apState != APApplication.State.ANDROIDPATCH_INSTALLED) {
+            KStatusCard(kpState, apState, rootlessMode, navigator)
+            if (!rootlessMode && kpState != APApplication.State.UNKNOWN_STATE && apState != APApplication.State.ANDROIDPATCH_INSTALLED) {
                 AStatusCard(apState)
             }
             val checkUpdate = APApplication.sharedPreferences.getBoolean("check_update", true)
             if (checkUpdate) {
                 UpdateCard()
             }
-            InfoCard(kpState, apState)
+            InfoCard(kpState, apState, rootlessMode)
             LearnMoreCard()
             Spacer(Modifier)
         }
@@ -470,7 +471,10 @@ private fun TopBar(
 
 @Composable
 private fun KStatusCard(
-    kpState: APApplication.State, apState: APApplication.State, navigator: DestinationsNavigator
+    kpState: APApplication.State,
+    apState: APApplication.State,
+    rootlessMode: Boolean,
+    navigator: DestinationsNavigator
 ) {
 
     val showAuthFailedTipDialog = remember { mutableStateOf(false) }
@@ -589,7 +593,11 @@ private fun KStatusCard(
                     if (kpState != APApplication.State.UNKNOWN_STATE && kpState != APApplication.State.KERNELPATCH_NEED_UPDATE && kpState != APApplication.State.KERNELPATCH_NEED_REBOOT) {
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            text = "${Version.installedKPVString()} (${managerVersion.second}) - " + if (apState != APApplication.State.ANDROIDPATCH_NOT_INSTALLED) "Full" else "KernelPatch",
+                            text = "${Version.installedKPVString()} (${managerVersion.second}) - " + when {
+                                rootlessMode -> stringResource(R.string.home_mode_rootless)
+                                apState != APApplication.State.ANDROIDPATCH_NOT_INSTALLED -> stringResource(R.string.home_mode_full)
+                                else -> stringResource(R.string.home_mode_kernelpatch)
+                            },
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -889,7 +897,11 @@ private fun getDeviceInfo(): String {
 }
 
 @Composable
-private fun InfoCard(kpState: APApplication.State, apState: APApplication.State) {
+private fun InfoCard(
+    kpState: APApplication.State,
+    apState: APApplication.State,
+    rootlessMode: Boolean
+) {
     val prefs = APApplication.sharedPreferences
     val hideOtherInfo = prefs.getBoolean("is_hide_other_info", false)
     val cardContainer = CardStyleProvider.styledContainerColor(MaterialTheme.colorScheme.surfaceVariant)
@@ -953,22 +965,23 @@ private fun InfoCard(kpState: APApplication.State, apState: APApplication.State)
             }
 
             if (kpState != APApplication.State.UNKNOWN_STATE) {
+                val showSuPath = !rootlessMode && allow("su_path")
                 InfoCardItem(
                     stringResource(R.string.home_kpatch_version),
                     Version.installedKPVString(),
                     Icons.Filled.Healing,
                     allow("kp_version")
                 )
-                if (allow("kp_version") && allow("su_path")) {
+                if (allow("kp_version") && showSuPath) {
                     Spacer(Modifier.height(16.dp))
                 }
                 InfoCardItem(
                     stringResource(R.string.home_su_path),
                     Natives.suPath(),
                     Icons.Filled.Security,
-                    allow("su_path")
+                    showSuPath
                 )
-                if (allow("su_path")) {
+                if (showSuPath) {
                     Spacer(Modifier.height(16.dp))
                 }
             }

@@ -110,6 +110,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 fun SettingScreen(navigator: DestinationsNavigator) {
     val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
+    val rootlessMode by APApplication.rootlessModeLiveData.observeAsState(false)
     val kPatchReady = state != APApplication.State.UNKNOWN_STATE
     val aPatchReady =
         (state == APApplication.State.ANDROIDPATCH_INSTALLING || state == APApplication.State.ANDROIDPATCH_INSTALLED || state == APApplication.State.ANDROIDPATCH_NEED_UPDATE)
@@ -267,7 +268,7 @@ fun SettingScreen(navigator: DestinationsNavigator) {
             )
 
             // su path
-            if (kPatchReady) {
+            if (kPatchReady && !rootlessMode) {
                 ListItem(
                     leadingContent = {
                         Icon(

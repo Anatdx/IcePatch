@@ -119,6 +119,7 @@ import com.anatdx.icepatch.util.Version.getManagerVersion
 import com.anatdx.icepatch.util.checkNewVersion
 import com.anatdx.icepatch.util.getSELinuxStatus
 import com.anatdx.icepatch.util.reboot
+import com.anatdx.icepatch.util.rootAvailable
 import com.anatdx.icepatch.util.ui.APDialogBlurBehindUtils
 
 private val managerVersion = getManagerVersion()
@@ -139,11 +140,19 @@ fun HomeScreen(navigator: DestinationsNavigator) {
     if (kpState != APApplication.State.UNKNOWN_STATE) {
         showPatchFloatAction = false
     }
+    val canReboot by produceState(
+        initialValue = false,
+        key1 = kpState,
+        key2 = rootlessMode,
+        key3 = APApplication.superKey
+    ) {
+        value = rootAvailable()
+    }
 
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
-            TopBar(navigator = navigator, kpState = kpState)
+            TopBar(canReboot = canReboot)
         }
     ) { innerPadding ->
         Column(
@@ -435,7 +444,7 @@ fun RebootDropdownItem(@StringRes id: Int, reason: String = "") {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TopBar(
-    navigator: DestinationsNavigator, kpState: APApplication.State
+    canReboot: Boolean
 ) {
     var showDropdownReboot by remember { mutableStateOf(false) }
 
@@ -443,7 +452,7 @@ private fun TopBar(
         title = { Text(stringResource(R.string.app_name)) },
         colors = TopBarStyle.topAppBarColors(),
         actions = {
-        if (kpState != APApplication.State.UNKNOWN_STATE) {
+        if (canReboot) {
             IconButton(onClick = {
                 showDropdownReboot = true
             }) {
@@ -594,7 +603,7 @@ private fun KStatusCard(
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = "${Version.installedKPVString()} (${managerVersion.second}) - " + when {
-                                rootlessMode -> stringResource(R.string.home_mode_rootless)
+                                rootlessMode -> "Rootless"
                                 apState != APApplication.State.ANDROIDPATCH_NOT_INSTALLED -> stringResource(R.string.home_mode_full)
                                 else -> stringResource(R.string.home_mode_kernelpatch)
                             },
@@ -965,23 +974,33 @@ private fun InfoCard(
             }
 
             if (kpState != APApplication.State.UNKNOWN_STATE) {
+                val showKpVersion = allow("kp_version")
                 val showSuPath = !rootlessMode && allow("su_path")
+                val showApVersion =
+                    apState != APApplication.State.UNKNOWN_STATE &&
+                        apState != APApplication.State.ANDROIDPATCH_NOT_INSTALLED &&
+                        allow("ap_version")
+                val showDevice = allow("device")
+                val showKernel = allow("kernel")
+                val showSystem = allow("system")
+                val showFingerprint = allow("fingerprint")
+                val showSelinux = allow("selinux")
                 InfoCardItem(
                     stringResource(R.string.home_kpatch_version),
                     Version.installedKPVString(),
                     Icons.Filled.Healing,
-                    allow("kp_version")
+                    showKpVersion
                 )
-                if (allow("kp_version") && showSuPath) {
+                if (showKpVersion && (showSuPath || showApVersion || showDevice || showKernel || showSystem || showFingerprint || showSelinux)) {
                     Spacer(Modifier.height(16.dp))
                 }
                 InfoCardItem(
                     stringResource(R.string.home_su_path),
-                    Natives.suPath(),
+                    if (showSuPath) Natives.suPath() else "",
                     Icons.Filled.Security,
                     showSuPath
                 )
-                if (showSuPath) {
+                if (showSuPath && (showApVersion || showDevice || showKernel || showSystem || showFingerprint || showSelinux)) {
                     Spacer(Modifier.height(16.dp))
                 }
             }

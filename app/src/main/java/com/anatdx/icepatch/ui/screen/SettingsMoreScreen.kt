@@ -307,10 +307,11 @@ fun SettingsMoreScreen(navigator: DestinationsNavigator) {
                 }
 
                 Text(text = stringResource(id = R.string.settings_card_alpha))
+                val cardTransparency = 1f - cardAlpha
                 Slider(
-                    value = cardAlpha,
-                    valueRange = 0.4f..1f,
-                    onValueChange = { cardAlpha = it },
+                    value = cardTransparency,
+                    valueRange = 0f..0.6f,
+                    onValueChange = { cardAlpha = (1f - it).coerceIn(0.4f, 1f) },
                     onValueChangeFinished = {
                         prefs.edit { putFloat(StylePrefs.KEY_CARD_ALPHA, cardAlpha) }
                         refreshTheme.value = true

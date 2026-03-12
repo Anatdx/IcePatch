@@ -215,6 +215,7 @@ kotlin {
 
 val kernelPatchSubmoduleDir = File(rootDir, "external/KernelPatch")
 val kernelPatchKernelDir = File(kernelPatchSubmoduleDir, "kernel")
+val kernelPatchBaseLibFile = File(kernelPatchKernelDir, "base/baselib.c")
 val kernelPatchKpimgOutput = File(kernelPatchKernelDir, "kpimg")
 val appKpimgAsset = File(projectDir, "src/main/assets/kpimg")
 val kpMemcpyShimPath = File(kernelPatchKernelDir, "patch/common/kp_memcpy_shim.c")
@@ -257,6 +258,13 @@ fun runCommandOrThrow(workingDir: File, vararg command: String) {
     }
 }
 
+fun kernelPatchNeedsMemcpyShim(): Boolean {
+    if (!kernelPatchBaseLibFile.isFile) return true
+    val text = kernelPatchBaseLibFile.readText()
+    val hasMemcpy = Regex("""\bvoid\s*\*\s*memcpy\s*\(""").containsMatchIn(text)
+    return !hasMemcpy
+}
+
 tasks.register<Exec>("syncKernelPatchSubmodule") {
     workingDir = rootDir
     commandLine("git", "submodule", "update", "--init", "--recursive", "--", "external/KernelPatch")
@@ -273,22 +281,29 @@ tasks.register("buildKpimg") {
 
         val targetCompile = resolveKernelPatchTargetCompile()
         val jobs = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+        val needsMemcpyShim = kernelPatchNeedsMemcpyShim()
 
-        // Newer toolchains may emit unresolved memcpy for structure copies in map.c.
-        kpMemcpyShimPath.writeText(
-            """
-            #include <stdint.h>
-            typedef unsigned long size_t;
-            void *memcpy(void *dst, const void *src, size_t n) {
-                unsigned char *d = (unsigned char *)dst;
-                const unsigned char *s = (const unsigned char *)src;
-                while (n--) {
-                    *d++ = *s++;
+        // Always remove stale shim artifacts first; wildcard source pickup can otherwise break link.
+        kpMemcpyShimPath.delete()
+        kpMemcpyShimObjPath.delete()
+
+        if (needsMemcpyShim) {
+            // Older KernelPatch revisions may not provide memcpy symbol in baselib.
+            kpMemcpyShimPath.writeText(
+                """
+                #include <stdint.h>
+                typedef unsigned long size_t;
+                void *memcpy(void *dst, const void *src, size_t n) {
+                    unsigned char *d = (unsigned char *)dst;
+                    const unsigned char *s = (const unsigned char *)src;
+                    while (n--) {
+                        *d++ = *s++;
+                    }
+                    return dst;
                 }
-                return dst;
-            }
-            """.trimIndent() + "\n"
-        )
+                """.trimIndent() + "\n"
+            )
+        }
 
         try {
             runCommandOrThrow(kernelPatchKernelDir, "make", "TARGET_COMPILE=$targetCompile", "clean")

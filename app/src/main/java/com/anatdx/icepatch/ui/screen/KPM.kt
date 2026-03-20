@@ -2,6 +2,7 @@ package com.anatdx.icepatch.ui.screen
 
 import android.app.Activity.RESULT_OK
 import android.content.Intent
+import android.content.Context
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
@@ -103,6 +104,14 @@ import java.io.IOException
 private const val TAG = "KernelPatchModule"
 private lateinit var targetKPMToControl: KPModel.KPMInfo
 
+private fun showToastSafely(context: Context, text: String) {
+    runCatching {
+        Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
+    }.onFailure {
+        Log.e(TAG, "showToastSafely failed", it)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Destination<RootGraph>
 @Composable
@@ -168,9 +177,7 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
                     val rc = loadModule(loadingDialog, uri, "")
                     val toastText = if (rc == 0) successToastText else "$failToastText: $rc"
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(
-                            context, toastText, Toast.LENGTH_SHORT
-                        ).show()
+                        showToastSafely(context, toastText)
                     }
                     viewModel.markNeedRefresh()
                     viewModel.fetchModuleList()
@@ -292,17 +299,12 @@ fun KPMControlDialog(showDialog: MutableState<Boolean>) {
         }
 
         if (controlResult.rc >= 0) {
-            Toast.makeText(
-                context,
-                "$okStringRes\n${outMsgStringRes}: ${controlResult.outMsg}",
-                Toast.LENGTH_SHORT
-            ).show()
+            showToastSafely(context, "$okStringRes\n${outMsgStringRes}: ${controlResult.outMsg}")
         } else {
-            Toast.makeText(
+            showToastSafely(
                 context,
-                "$failedStringRes\n${outMsgStringRes}: ${controlResult.outMsg}",
-                Toast.LENGTH_SHORT
-            ).show()
+                "$failedStringRes\n${outMsgStringRes}: ${controlResult.outMsg}"
+            )
         }
     }
 

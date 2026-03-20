@@ -4,8 +4,8 @@
 #include "package.hpp"
 #include "utils.hpp"
 
-#include <cstdio>
 #include <cerrno>
+#include <cstdio>
 #include <cstring>
 #include <mutex>
 #include <sys/syscall.h>
@@ -32,6 +32,9 @@ constexpr long kSupercallSuNums = 0x1102;
 constexpr long kSupercallSuList = 0x1103;
 constexpr long kSupercallSuResetPath = 0x1111;
 constexpr long kSupercallSuGetSafemode = 0x1112;
+constexpr long kSupercallPolicyGetFlags = 0x1120;
+constexpr long kSupercallPolicyApplyFlags = 0x1121;
+constexpr long kSupercallPolicyApplyProfile = 0x1122;
 
 constexpr int kKstorageExcludeListGroup = 1;
 
@@ -40,38 +43,36 @@ long VerAndCmd(long cmd) {
   return (version_code << 32) | (0x1158 << 16) | (cmd & 0xFFFF);
 }
 
-long ScKstorageWrite(const std::string& key, int gid, long long did, void* data, int offset,
-                     int dlen) {
+long ScKstorageWrite(const std::string &key, int gid, long long did, void *data,
+                     int offset, int dlen) {
   if (key.empty()) {
     return -EINVAL;
   }
-  return syscall(kSupercallNr, key.c_str(), VerAndCmd(kSupercallKstorageWrite), static_cast<long>(gid),
-                 static_cast<long>(did), data,
-                 static_cast<long>(((static_cast<long long>(offset) << 32) | dlen)));
+  return syscall(
+      kSupercallNr, key.c_str(), VerAndCmd(kSupercallKstorageWrite),
+      static_cast<long>(gid), static_cast<long>(did), data,
+      static_cast<long>(((static_cast<long long>(offset) << 32) | dlen)));
 }
 
-long ScSetApModExclude(const std::string& key, long long uid, int exclude) {
-  return ScKstorageWrite(key, kKstorageExcludeListGroup, uid, &exclude, 0, sizeof(int));
+long ScSetApModExclude(const std::string &key, long long uid, int exclude) {
+  return ScKstorageWrite(key, kKstorageExcludeListGroup, uid, &exclude, 0,
+                         sizeof(int));
 }
 
-std::string ReadFileString(const std::string& path) {
-  return ReadFile(path);
-}
+std::string ReadFileString(const std::string &path) { return ReadFile(path); }
 
-std::string ToScontext(const std::string& sctx) {
+std::string ToScontext(const std::string &sctx) {
   if (sctx.size() >= sizeof(SuProfile::scontext)) {
     return sctx.substr(0, sizeof(SuProfile::scontext));
   }
   return sctx;
 }
 
-void SetEnvVar(const char* key, const char* value) {
-  setenv(key, value, 1);
-}
+void SetEnvVar(const char *key, const char *value) { setenv(key, value, 1); }
 
-}  // namespace
+} // namespace
 
-long ScSuGetSafemode(const std::string& key) {
+long ScSuGetSafemode(const std::string &key) {
   if (key.empty()) {
     LOGW("[ScSuGetSafemode] empty key");
     return 0;
@@ -79,71 +80,103 @@ long ScSuGetSafemode(const std::string& key) {
   return syscall(kSupercallNr, key.c_str(), VerAndCmd(kSupercallSuGetSafemode));
 }
 
-long ScSu(const std::string& key, const SuProfile& profile) {
+long ScSu(const std::string &key, const SuProfile &profile) {
   if (key.empty()) {
     return -EINVAL;
   }
   return syscall(kSupercallNr, key.c_str(), VerAndCmd(kSupercallSu), &profile);
 }
 
-long ScSuGrantUid(const std::string& key, const SuProfile& profile) {
+long ScSuGrantUid(const std::string &key, const SuProfile &profile) {
   if (key.empty()) {
     return -EINVAL;
   }
-  return syscall(kSupercallNr, key.c_str(), VerAndCmd(kSupercallSuGrantUid), &profile);
+  return syscall(kSupercallNr, key.c_str(), VerAndCmd(kSupercallSuGrantUid),
+                 &profile);
 }
 
-long ScSuRevokeUid(const std::string& key, int uid) {
+long ScSuRevokeUid(const std::string &key, int uid) {
   if (key.empty()) {
     return -EINVAL;
   }
-  return syscall(kSupercallNr, key.c_str(), VerAndCmd(kSupercallSuRevokeUid), uid);
+  return syscall(kSupercallNr, key.c_str(), VerAndCmd(kSupercallSuRevokeUid),
+                 uid);
 }
 
-long ScSuResetPath(const std::string& key, const std::string& path) {
+long ScSuResetPath(const std::string &key, const std::string &path) {
   if (key.empty() || path.empty()) {
     return -EINVAL;
   }
-  return syscall(kSupercallNr, key.c_str(), VerAndCmd(kSupercallSuResetPath), path.c_str());
+  return syscall(kSupercallNr, key.c_str(), VerAndCmd(kSupercallSuResetPath),
+                 path.c_str());
 }
 
-int ScKpVer(const std::string& key) {
+int ScKpVer(const std::string &key) {
   if (key.empty()) {
     return -EINVAL;
   }
-  return static_cast<int>(syscall(kSupercallNr, key.c_str(), VerAndCmd(kSupercallKernelPatchVer)));
+  return static_cast<int>(
+      syscall(kSupercallNr, key.c_str(), VerAndCmd(kSupercallKernelPatchVer)));
 }
 
-int ScKVer(const std::string& key) {
+int ScKVer(const std::string &key) {
   if (key.empty()) {
     return -EINVAL;
   }
-  return static_cast<int>(syscall(kSupercallNr, key.c_str(), VerAndCmd(kSupercallKernelVer)));
+  return static_cast<int>(
+      syscall(kSupercallNr, key.c_str(), VerAndCmd(kSupercallKernelVer)));
 }
 
-long ScKlog(const std::string& key, const std::string& msg) {
+long ScKlog(const std::string &key, const std::string &msg) {
   if (key.empty() || msg.empty()) {
     return -EINVAL;
   }
-  return syscall(kSupercallNr, key.c_str(), VerAndCmd(kSupercallKlog), msg.c_str());
+  return syscall(kSupercallNr, key.c_str(), VerAndCmd(kSupercallKlog),
+                 msg.c_str());
 }
 
-long ScSuUidNums(const std::string& key) {
+long ScSuUidNums(const std::string &key) {
   if (key.empty()) {
     return -EINVAL;
   }
   return syscall(kSupercallNr, key.c_str(), VerAndCmd(kSupercallSuNums));
 }
 
-long ScSuAllowUids(const std::string& key, std::vector<int>& uids) {
+long ScSuAllowUids(const std::string &key, std::vector<int> &uids) {
   if (key.empty() || uids.empty()) {
     return -EINVAL;
   }
-  return syscall(kSupercallNr, key.c_str(), VerAndCmd(kSupercallSuList), uids.data(),
-                 static_cast<int>(uids.size()));
+  return syscall(kSupercallNr, key.c_str(), VerAndCmd(kSupercallSuList),
+                 uids.data(), static_cast<int>(uids.size()));
 }
 
-void RefreshApPackageList(const std::string& key) {
+long ScPolicyGetFlags(const std::string &key) {
+  if (key.empty()) {
+    return -EINVAL;
+  }
+  return syscall(kSupercallNr, key.c_str(),
+                 VerAndCmd(kSupercallPolicyGetFlags));
+}
+
+long ScPolicyApplyFlags(const std::string &key, uint32_t flags) {
+  if (key.empty()) {
+    return -EINVAL;
+  }
+  return syscall(kSupercallNr, key.c_str(),
+                 VerAndCmd(kSupercallPolicyApplyFlags),
+                 static_cast<long>(flags));
+}
+
+long ScPolicyApplyProfile(const std::string &key, int profile) {
+  if (key.empty()) {
+    return -EINVAL;
+  }
+  return syscall(kSupercallNr, key.c_str(),
+                 VerAndCmd(kSupercallPolicyApplyProfile),
+                 static_cast<long>(profile));
+}
+
+void RefreshApPackageList(const std::string &key) {
   static std::mutex mutex;
   std::lock_guard<std::mutex> lock(mutex);
 
@@ -174,7 +207,7 @@ void RefreshApPackageList(const std::string& key) {
   }
 
   auto configs = ReadApPackageConfig();
-  for (const auto& cfg : configs) {
+  for (const auto &cfg : configs) {
     if (cfg.allow == 1 && cfg.exclude == 0) {
       SuProfile profile{};
       profile.uid = cfg.uid;
@@ -186,35 +219,40 @@ void RefreshApPackageList(const std::string& key) {
     }
     if (cfg.allow == 0 && cfg.exclude == 1) {
       long result = ScSetApModExclude(key, cfg.uid, 1);
-      LOGI("[RefreshApPackageList] Loading exclude %s: %ld", cfg.pkg.c_str(), result);
+      LOGI("[RefreshApPackageList] Loading exclude %s: %ld", cfg.pkg.c_str(),
+           result);
     }
   }
 }
 
-void PrivilegeApdProfile(const std::string& key) {
+void PrivilegeApdProfile(const std::string &key) {
   if (key.empty()) {
     return;
   }
   SuProfile profile{};
-  profile.uid = static_cast<int>(getpid());
+  profile.uid = static_cast<int>(getuid());
   profile.to_uid = 0;
-  const char* sctx = "u:r:magisk:s0";
+  const char *sctx = "u:r:magisk:s0";
   std::memcpy(profile.scontext, sctx, std::strlen(sctx));
   long result = ScSu(key, profile);
   if (result != 0) {
-    LOGW("[PrivilegeApdProfile] ScSu failed, fallback to GrantUid: %ld", result);
+    LOGW("[PrivilegeApdProfile] ScSu failed, fallback to GrantUid: %ld",
+         result);
     result = ScSuGrantUid(key, profile);
+    if (result == 0) {
+      result = ScSu(key, profile);
+    }
   }
   LOGI("[PrivilegeApdProfile] result=%ld", result);
 }
 
-void InitLoadPackageUidConfig(const std::string& key) {
+void InitLoadPackageUidConfig(const std::string &key) {
   if (key.empty()) {
     LOGW("[InitLoadPackageUidConfig] empty superkey");
     return;
   }
   auto configs = ReadApPackageConfig();
-  for (const auto& cfg : configs) {
+  for (const auto &cfg : configs) {
     if (cfg.allow == 1 && cfg.exclude == 0) {
       SuProfile profile{};
       profile.uid = cfg.uid;
@@ -226,17 +264,18 @@ void InitLoadPackageUidConfig(const std::string& key) {
     }
     if (cfg.allow == 0 && cfg.exclude == 1) {
       long result = ScSetApModExclude(key, cfg.uid, 1);
-      LOGI("[InitLoadPackageUidConfig] exclude %s: %ld", cfg.pkg.c_str(), result);
+      LOGI("[InitLoadPackageUidConfig] exclude %s: %ld", cfg.pkg.c_str(),
+           result);
     }
   }
 }
 
-void InitLoadSuPath(const std::string& key) {
+void InitLoadSuPath(const std::string &key) {
   if (key.empty()) {
     LOGW("[InitLoadSuPath] empty superkey");
     return;
   }
-  const char* su_path_file = "/data/adb/ap/su_path";
+  const char *su_path_file = "/data/adb/ap/su_path";
   std::string content = ReadFileString(su_path_file);
   if (content.empty()) {
     LOGW("[InitLoadSuPath] su_path file missing");
@@ -254,8 +293,9 @@ void InitLoadSuPath(const std::string& key) {
   }
 }
 
-void ForkForResult(const std::string& exec, const std::vector<std::string>& argv,
-                   const std::string& key) {
+void ForkForResult(const std::string &exec,
+                   const std::vector<std::string> &argv,
+                   const std::string &key) {
   if (key.empty()) {
     LOGW("[ForkForResult] superkey empty");
     return;
@@ -274,10 +314,10 @@ void ForkForResult(const std::string& exec, const std::vector<std::string>& argv
     std::snprintf(kver, sizeof(kver), "%x", ScKVer(key));
     SetEnvVar("KERNEL_VERSION", kver);
 
-    std::vector<char*> args;
+    std::vector<char *> args;
     args.reserve(argv.size() + 1);
-    for (const auto& arg : argv) {
-      args.push_back(const_cast<char*>(arg.c_str()));
+    for (const auto &arg : argv) {
+      args.push_back(const_cast<char *>(arg.c_str()));
     }
     args.push_back(nullptr);
     execv(exec.c_str(), args.data());
@@ -288,4 +328,4 @@ void ForkForResult(const std::string& exec, const std::vector<std::string>& argv
   LOGI("[ForkForResult] wait status: %d", status);
 }
 
-}  // namespace apd
+} // namespace apd

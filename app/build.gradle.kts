@@ -228,20 +228,14 @@ fun hasCommandInPath(command: String): Boolean {
         .any { it.isFile && it.canExecute() }
 }
 
-fun resolveKernelPatchTargetCompile(): String {
+fun resolveKernelPatchTargetCompile(): String? {
     val fromProp = providers.gradleProperty("KP_TARGET_COMPILE").orNull?.trim().orEmpty()
     if (fromProp.isNotEmpty()) return fromProp
     val fromEnv = System.getenv("KP_TARGET_COMPILE")?.trim().orEmpty()
     if (fromEnv.isNotEmpty()) return fromEnv
 
-    return when {
-        hasCommandInPath("aarch64-none-elf-gcc") -> "aarch64-none-elf-"
-        hasCommandInPath("aarch64-elf-gcc") -> "aarch64-elf-"
-        else -> throw GradleException(
-            "No bare-metal AArch64 GCC found. Install a toolchain and set KP_TARGET_COMPILE " +
-                "(for example: aarch64-none-elf-)."
-        )
-    }
+    if (hasCommandInPath("aarch64-none-elf-gcc")) return "aarch64-none-elf-"
+    return null
 }
 
 fun runCommandOrThrow(workingDir: File, vararg command: String) {
@@ -256,6 +250,48 @@ fun runCommandOrThrow(workingDir: File, vararg command: String) {
     if (exitCode != 0) {
         throw GradleException("Command failed ($exitCode): ${command.joinToString(" ")}")
     }
+}
+
+fun buildKpimgWithDocker(kernelSubmoduleDir: File, jobs: Int) {
+    if (!hasCommandInPath("docker")) {
+        throw GradleException(
+            "aarch64-none-elf-gcc not found and docker is unavailable. " +
+                "Install Arm GNU toolchain (aarch64-none-elf) or install docker."
+        )
+    }
+    val cacheDir = File(rootDir, ".kpimg-toolchain-cache").apply { mkdirs() }
+    val script = """
+        set -euo pipefail
+        apt-get update >/dev/null
+        apt-get install -y wget xz-utils make >/dev/null
+        TOOL=arm-gnu-toolchain-12.2.rel1-x86_64-aarch64-none-elf
+        URL=https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/${'$'}{TOOL}.tar.xz
+        if [ ! -x /cache/${'$'}{TOOL}/bin/aarch64-none-elf-gcc ]; then
+          wget -q -O /cache/${'$'}{TOOL}.tar.xz "${'$'}URL"
+          tar -xf /cache/${'$'}{TOOL}.tar.xz -C /cache
+        fi
+        make TARGET_COMPILE=/cache/${'$'}{TOOL}/bin/aarch64-none-elf- clean
+        make TARGET_COMPILE=/cache/${'$'}{TOOL}/bin/aarch64-none-elf- ANDROID=1 -j$jobs
+    """.trimIndent()
+
+    runCommandOrThrow(
+        kernelSubmoduleDir,
+        "docker",
+        "run",
+        "--rm",
+        "--platform",
+        "linux/amd64",
+        "-v",
+        "${kernelSubmoduleDir.absolutePath}:/work",
+        "-v",
+        "${cacheDir.absolutePath}:/cache",
+        "-w",
+        "/work/kernel",
+        "ubuntu:22.04",
+        "bash",
+        "-lc",
+        script,
+    )
 }
 
 fun kernelPatchNeedsMemcpyShim(): Boolean {
@@ -306,14 +342,21 @@ tasks.register("buildKpimg") {
         }
 
         try {
-            runCommandOrThrow(kernelPatchKernelDir, "make", "TARGET_COMPILE=$targetCompile", "clean")
-            runCommandOrThrow(
-                kernelPatchKernelDir,
-                "make",
-                "TARGET_COMPILE=$targetCompile",
-                "ANDROID=1",
-                "-j$jobs",
-            )
+            if (targetCompile != null) {
+                runCommandOrThrow(kernelPatchKernelDir, "make", "TARGET_COMPILE=$targetCompile", "clean")
+                runCommandOrThrow(
+                    kernelPatchKernelDir,
+                    "make",
+                    "TARGET_COMPILE=$targetCompile",
+                    "ANDROID=1",
+                    "-j$jobs",
+                )
+            } else {
+                logger.lifecycle(
+                    "aarch64-none-elf-gcc not found locally; building kpimg in docker (linux/amd64 + Arm GNU toolchain)."
+                )
+                buildKpimgWithDocker(kernelPatchSubmoduleDir, jobs)
+            }
         } finally {
             kpMemcpyShimPath.delete()
             kpMemcpyShimObjPath.delete()

@@ -17,8 +17,10 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
+import com.anatdx.icepatch.APApplication
 import com.anatdx.icepatch.IAPRootService
 import com.anatdx.icepatch.Natives
 import com.anatdx.icepatch.apApp
@@ -28,7 +30,6 @@ import com.anatdx.icepatch.util.HanziToPinyin
 import com.anatdx.icepatch.util.PkgConfig
 import java.text.Collator
 import java.util.Locale
-import kotlin.concurrent.thread
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -110,58 +111,90 @@ class SuperUserViewModel : ViewModel() {
         RootServices.stop(intent)
     }
 
-    suspend fun fetchAppList() {
+    private fun buildAppList(
+        packages: List<PackageInfo>,
+        rootlessMode: Boolean
+    ): List<AppInfo> {
+        val uids = if (rootlessMode) {
+            emptySet()
+        } else {
+            Natives.suUids().toSet()
+        }
+        val configs = if (rootlessMode) {
+            hashMapOf()
+        } else {
+            PkgConfig.readConfigs()
+        }
+
+        return packages.map { packageInfo ->
+            val appInfo = packageInfo.applicationInfo
+            val uid = appInfo!!.uid
+            val actProfile = if (!rootlessMode && uids.contains(uid)) Natives.suProfile(uid) else null
+            val defaultConfig = PkgConfig.Config(
+                appInfo.packageName,
+                Natives.isUidExcluded(uid),
+                0,
+                Natives.Profile(uid = uid)
+            )
+            val config = if (rootlessMode) {
+                defaultConfig
+            } else {
+                configs.getOrDefault(uid, defaultConfig)
+            }
+            config.allow = 0
+
+            if (actProfile != null) {
+                config.allow = 1
+                config.profile = actProfile
+            }
+            AppInfo(
+                label = appInfo.loadLabel(apApp.packageManager).toString(),
+                packageInfo = packageInfo,
+                config = config
+            )
+        }
+    }
+
+    suspend fun fetchAppList(forceRootlessMode: Boolean = APApplication.rootlessModeLiveData.value == true) {
         isRefreshing = true
 
         try {
-            val result = connectRootService {
-                Log.w(TAG, "RootService disconnected")
+            val rootlessMode = forceRootlessMode
+            val allPackages = if (rootlessMode) {
+                withContext(Dispatchers.IO) {
+                    @Suppress("DEPRECATION")
+                    apApp.packageManager.getInstalledPackages(0)
+                }
+            } else {
+                val result = withTimeoutOrNull(3000L) {
+                    connectRootService {
+                        Log.w(TAG, "RootService disconnected")
+                    }
+                }
+                if (result == null) {
+                    Log.w(TAG, "RootService connect timed out, fallback to PackageManager")
+                    withContext(Dispatchers.IO) {
+                        @Suppress("DEPRECATION")
+                        apApp.packageManager.getInstalledPackages(0)
+                    }
+                } else {
+                    withContext(Dispatchers.IO) {
+                        val binder = result.first
+                        val packages = IAPRootService.Stub.asInterface(binder).getPackages(0).list
+                        withContext(Dispatchers.Main) {
+                            stopRootService()
+                        }
+                        packages
+                    }
+                }
             }
 
-            withContext(Dispatchers.IO) {
-                val binder = result.first
-                val allPackages = IAPRootService.Stub.asInterface(binder).getPackages(0)
+            val newApps = withContext(Dispatchers.IO) {
+                buildAppList(allPackages, rootlessMode)
+            }
 
-                withContext(Dispatchers.Main) {
-                    stopRootService()
-                }
-                val uids = Natives.suUids().toList()
-                Log.d(TAG, "all allows: $uids")
-
-                var configs: HashMap<Int, PkgConfig.Config> = HashMap()
-                thread {
-                    Natives.su()
-                    configs = PkgConfig.readConfigs()
-                }.join()
-
-                Log.d(TAG, "all configs: $configs")
-
-                val newApps = allPackages.list.map {
-                    val appInfo = it.applicationInfo
-                    val uid = appInfo!!.uid
-                    val actProfile = if (uids.contains(uid)) Natives.suProfile(uid) else null
-                    val config = configs.getOrDefault(
-                        uid, PkgConfig.Config(appInfo.packageName, Natives.isUidExcluded(uid), 0, Natives.Profile(uid = uid))
-                    )
-                    config.allow = 0
-
-                    // from kernel
-                    if (actProfile != null) {
-                        config.allow = 1
-                        config.profile = actProfile
-                    }
-                    AppInfo(
-                        label = appInfo.loadLabel(apApp.packageManager).toString(),
-                        packageInfo = it,
-                        config = config
-                    )
-                }
-
-                withContext(Dispatchers.Main) {
-                    synchronized(appsLock) {
-                        apps = newApps
-                    }
-                }
+            synchronized(appsLock) {
+                apps = newApps
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fetch app list", e)

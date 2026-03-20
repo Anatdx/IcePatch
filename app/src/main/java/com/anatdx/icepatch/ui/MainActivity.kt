@@ -202,7 +202,7 @@ class MainActivity : AppCompatActivity() {
                     BottomBarDestination.entries.filter { destination ->
                         !(destination.kPatchRequired && !kPatchReady) &&
                             !(destination.aPatchRequired && !aPatchReady) &&
-                            !(rootlessMode && (destination == BottomBarDestination.SuperUser || destination == BottomBarDestination.AModule))
+                            !(rootlessMode && destination == BottomBarDestination.AModule)
                     }
                 }
 

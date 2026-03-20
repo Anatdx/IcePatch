@@ -147,6 +147,8 @@
     <string name="patch_policy_profile_full">完整功能挂钩</string>
     <string name="patch_policy_no_su">无 Root 模式（禁用 SU 挂钩）</string>
     <string name="patch_policy_no_su_summary">保留 KernelPatch 核心能力，但禁用内置 SU 能力。</string>
+    <string name="patch_policy_apply_now">立即应用到当前内核</string>
+    <string name="patch_policy_apply_now_result">热应用结果：</string>
     <string name="patch_mode_uninstall_patch">还原初始内核镜像</string>
     <string name="patch_start_unpatch_btn">取消修补</string>
     <string name="hide_apatch_dialog_new_manager_name">新管理器名称</string>

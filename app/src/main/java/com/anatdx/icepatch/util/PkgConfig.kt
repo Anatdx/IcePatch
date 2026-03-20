@@ -5,10 +5,7 @@ import android.util.Log
 import androidx.annotation.Keep
 import androidx.compose.runtime.Immutable
 import kotlinx.parcelize.Parcelize
-import com.anatdx.icepatch.APApplication
 import com.anatdx.icepatch.Natives
-import java.io.File
-import java.io.FileWriter
 import kotlin.concurrent.thread
 
 object PkgConfig {
@@ -41,50 +38,64 @@ object PkgConfig {
 
     fun readConfigs(): HashMap<Int, Config> {
         val configs = HashMap<Int, Config>()
-        val file = File(APApplication.PACKAGE_CONFIG_FILE)
-        if (file.exists()) {
-            file.readLines().drop(1).filter { it.isNotEmpty() }.forEach {
+        val result = runManagedApd("tool", "package-config", "list")
+        if (!result.isSuccess) {
+            Log.w(TAG, "readConfigs failed: ${result.lines.joinToString(" | ")}")
+            return configs
+        }
+        result.lines.drop(1).filter { it.isNotEmpty() && it.contains(",") }.forEach {
+            runCatching {
                 Log.d(TAG, it)
                 val p = Config.fromLine(it)
                 if (!p.isDefault()) {
                     configs[p.profile.uid] = p
                 }
+            }.onFailure { error ->
+                Log.w(TAG, "skip malformed config row: $it (${error.message})")
             }
         }
         return configs
     }
 
-    private fun writeConfigs(configs: HashMap<Int, Config>) {
-        val file = File(APApplication.PACKAGE_CONFIG_FILE)
-        if (!file.parentFile?.exists()!!) file.parentFile?.mkdirs()
-        val writer = FileWriter(file, false)
-        writer.write(CSV_HEADER + '\n')
-        configs.values.forEach {
-            if (!it.isDefault()) {
-                writer.write(it.toLine() + '\n')
-            }
+    private fun writeConfig(config: Config): Boolean {
+        val result = runManagedApd(
+            "tool",
+            "package-config",
+            "set",
+            "--pkg",
+            config.pkg,
+            "--exclude",
+            config.exclude.toString(),
+            "--allow",
+            config.allow.toString(),
+            "--uid",
+            config.profile.uid.toString(),
+            "--to-uid",
+            config.profile.toUid.toString(),
+            "--sctx",
+            config.profile.scontext,
+        )
+        if (!result.isSuccess) {
+            Log.e(TAG, "writeConfig failed: ${result.lines.joinToString(" | ")}")
         }
-        writer.flush()
-        writer.close()
+        return result.isSuccess
     }
 
     fun changeConfig(config: Config) {
+        val snapshot = config.copy(
+            profile = Natives.Profile(
+                uid = config.profile.uid,
+                toUid = config.profile.toUid,
+                scontext = config.profile.scontext,
+            )
+        )
         thread {
-            synchronized(PkgConfig.javaClass) {
-                Natives.su()
-                val configs = readConfigs()
-                val uid = config.profile.uid
-                // Root App should not be excluded
-                if (config.allow == 1) {
-                    config.exclude = 0
+            synchronized(PkgConfig::class.java) {
+                if (snapshot.allow == 1) {
+                    snapshot.exclude = 0
                 }
-                if (config.allow == 0 && configs[uid] != null && config.exclude != 0) {
-                    configs.remove(uid)
-                } else {
-                    Log.d(TAG, "change config: $config")
-                    configs[uid] = config
-                }
-                writeConfigs(configs)
+                Log.d(TAG, "change config: $snapshot")
+                writeConfig(snapshot)
             }
         }
     }

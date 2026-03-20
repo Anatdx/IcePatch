@@ -21,7 +21,9 @@ import com.anatdx.icepatch.BuildConfig
 import com.anatdx.icepatch.Natives
 import com.anatdx.icepatch.apApp
 import com.anatdx.icepatch.ui.screen.MODULE_TYPE
+import java.io.BufferedReader
 import java.io.File
+import java.io.InputStreamReader
 import java.security.MessageDigest
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
@@ -30,6 +32,14 @@ import java.util.zip.ZipFile
 
 private const val TAG = "APatchCli"
 
+data class LocalApdResult(
+    val code: Int,
+    val lines: List<String>,
+) {
+    val isSuccess: Boolean
+        get() = code == 0
+}
+
 class RootShellInitializer : Shell.Initializer() {
     override fun onInit(context: Context, shell: Shell): Boolean {
         shell.newJob().add("export PATH=\$PATH:/system_ext/bin:/vendor/bin").exec()
@@ -37,48 +47,110 @@ class RootShellInitializer : Shell.Initializer() {
     }
 }
 
-fun createRootShell(globalMnt: Boolean = false): Shell {
-    Shell.enableVerboseLogging = BuildConfig.DEBUG
-    val builder = Shell.Builder.create().setInitializers(RootShellInitializer::class.java)
-    return try {
-        builder.build(
-            SUPERCMD, APApplication.superKey, "-Z", APApplication.MAGISK_SCONTEXT
+private fun rootShellCommandFallbacks(globalMnt: Boolean = false): List<Array<String>> {
+    val commands = mutableListOf<Array<String>>()
+    if (APApplication.superKey.isNotEmpty()) {
+        commands += arrayOf(
+            SUPERCMD,
+            APApplication.superKey,
+            "-Z",
+            APApplication.MAGISK_SCONTEXT,
         )
-    } catch (e: Throwable) {
-        Log.e(TAG, "su failed: ", e)
-        return try {
-            Log.e(TAG, "retry su: ", e)
-            if (globalMnt) {
-                builder.build("su", "-mm")
-            } else {
-                builder.build("su")
+        // Some devices only accept default app context with supercmd.
+        commands += arrayOf(
+            SUPERCMD,
+            APApplication.superKey,
+            "-Z",
+            APApplication.DEFAULT_SCONTEXT,
+        )
+        // Some devices/policies reject explicit -Z context; keep a no-context fallback.
+        commands += arrayOf(SUPERCMD, APApplication.superKey)
+    }
+    val suPath = runCatching { Natives.suPath().trim() }.getOrDefault("")
+    if (suPath.isNotEmpty() && suPath != "su") {
+        commands += arrayOf(suPath)
+    }
+    if (suPath != "/system/bin/kp") {
+        commands += arrayOf("/system/bin/kp")
+    }
+    if (globalMnt) {
+        commands += arrayOf("su", "-mm")
+    }
+    commands += arrayOf("su")
+    commands += arrayOf("sh")
+    return commands
+}
+
+private fun shellCanAccessAdbDir(shell: Shell): Boolean {
+    return ShellUtils.fastCmdResult(shell, "test -d /data/adb && ls /data/adb >/dev/null 2>&1")
+}
+
+private fun isUsableRootShell(shell: Shell, requireDataAdbAccess: Boolean): Boolean {
+    if (!shell.isRoot) {
+        return false
+    }
+    if (!requireDataAdbAccess) {
+        return true
+    }
+    return shellCanAccessAdbDir(shell)
+}
+
+private fun shellQuote(value: String): String {
+    return "'${value.replace("'", "'\"'\"'")}'"
+}
+
+@JvmOverloads
+fun createRootShell(globalMnt: Boolean = false, requireDataAdbAccess: Boolean = false): Shell {
+    Shell.enableVerboseLogging = BuildConfig.DEBUG
+    val builder = Shell.Builder.create()
+        .setInitializers(RootShellInitializer::class.java)
+    for (cmd in rootShellCommandFallbacks(globalMnt)) {
+        try {
+            val shell = builder.build(*cmd)
+            if (isUsableRootShell(shell, requireDataAdbAccess)) {
+                return shell
             }
+            Log.w(
+                TAG,
+                "skip unusable shell (${cmd.joinToString(" ")}), " +
+                    "isRoot=${shell.isRoot}, requireDataAdbAccess=$requireDataAdbAccess"
+            )
+            shell.close()
         } catch (e: Throwable) {
-            Log.e(TAG, "retry su failed: ", e)
-            return builder.build("sh")
+            Log.e(TAG, "shell command failed (${cmd.joinToString(" ")}): ", e)
         }
     }
+    return builder.build("sh")
 }
 
 private fun createMainRootShell() : Shell {
-    val builder = Shell.Builder.create()
-        .setInitializers(RootShellInitializer::class.java)
-        .setCommands(SUPERCMD, APApplication.superKey, "-Z", APApplication.MAGISK_SCONTEXT)
-    val shell = try {
-        builder.build()
-    } catch (e: Throwable) {
-        Log.e(TAG, "su failed: ", e)
-        builder.setCommands("su")
+    val commands = rootShellCommandFallbacks(globalMnt = false)
+    for (cmd in commands) {
+        val builder = Shell.Builder.create()
+            .setInitializers(RootShellInitializer::class.java)
+            .setCommands(*cmd)
         try {
-            builder.build()
+            val shell = builder.build()
+            if (!isUsableRootShell(shell, requireDataAdbAccess = true)) {
+                Log.w(
+                    TAG,
+                    "skip unusable main shell (${cmd.joinToString(" ")}), " +
+                        "isRoot=${shell.isRoot}"
+                )
+                shell.close()
+                continue
+            }
+            MainShell.setBuilder(builder)
+            return shell
         } catch (e: Throwable) {
-            Log.e(TAG, "retry su failed: ", e)
-            builder.setCommands("sh")
-            builder.build()
+            Log.e(TAG, "main shell command failed (${cmd.joinToString(" ")}): ", e)
         }
     }
-
-    MainShell.setBuilder(builder)
+    val fallbackBuilder = Shell.Builder.create()
+        .setInitializers(RootShellInitializer::class.java)
+        .setCommands("sh")
+    val shell = fallbackBuilder.build()
+    MainShell.setBuilder(fallbackBuilder)
     return shell
 }
 
@@ -127,9 +199,10 @@ fun getRootShell(globalMnt: Boolean = false): Shell {
 
 inline fun <T> withNewRootShell(
     globalMnt: Boolean = false,
+    requireDataAdbAccess: Boolean = false,
     block: Shell.() -> T
 ): T {
-    return createRootShell(globalMnt).use(block)
+    return createRootShell(globalMnt, requireDataAdbAccess).use(block)
 }
 
 fun rootAvailable(): Boolean {
@@ -166,6 +239,166 @@ fun rootShellForResult(vararg cmds: String): Shell.Result {
     val out = ArrayList<String>()
     val err = ArrayList<String>()
     return getRootShell().newJob().add(*cmds).to(out, err).exec()
+}
+
+fun getLocalApdPath(): String? {
+    val apd = File(apApp.applicationInfo.nativeLibraryDir, "libapd.so")
+    return apd.takeIf { it.exists() }?.path
+}
+
+private fun parseToolKv(lines: List<String>): Map<String, String> {
+    val out = mutableMapOf<String, String>()
+    for (line in lines) {
+        val trimmed = line.trimEnd()
+        if (trimmed.isEmpty()) continue
+        val parts = trimmed.split(Regex("\\s+"), limit = 2)
+        if (parts.size == 2) {
+            out[parts[0]] = parts[1].trim()
+        }
+    }
+    return out
+}
+
+fun runLocalApd(
+    vararg args: String,
+    withSuperKey: Boolean = true,
+    workDir: File = apApp.filesDir
+): LocalApdResult {
+    val apdPath = getLocalApdPath() ?: return LocalApdResult(-1, listOf("local apd missing"))
+    val command = mutableListOf(apdPath)
+    if (withSuperKey && APApplication.superKey.isNotBlank()) {
+        command += listOf("--superkey", APApplication.superKey)
+    }
+    command.addAll(args)
+
+    return runCatching {
+        val builder = ProcessBuilder(command)
+        builder.environment()["ASH_STANDALONE"] = "1"
+        builder.directory(workDir)
+        builder.redirectErrorStream(true)
+        val process = builder.start()
+        val lines = mutableListOf<String>()
+        BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
+            var line: String?
+            while (reader.readLine().also { line = it } != null) {
+                lines += (line ?: "")
+            }
+        }
+        LocalApdResult(process.waitFor(), lines)
+    }.getOrElse {
+        Log.e(TAG, "runLocalApd failed (${command.joinToString(" ")})", it)
+        LocalApdResult(-1, listOf(it.message ?: "runLocalApd failed"))
+    }
+}
+
+private fun runLocalApdInRootShell(
+    vararg args: String,
+    requireDataAdbAccess: Boolean,
+    withSuperKey: Boolean = true,
+    workDir: File = apApp.filesDir,
+): LocalApdResult {
+    val apdPath = getLocalApdPath() ?: return LocalApdResult(-1, listOf("local apd missing"))
+    return runCatching {
+        createRootShell(requireDataAdbAccess = requireDataAdbAccess).use { shell ->
+            if (!shell.isRoot) {
+                return@runCatching LocalApdResult(-1, listOf("no usable root shell"))
+            }
+            val command = buildList {
+                add(apdPath)
+                if (withSuperKey && APApplication.superKey.isNotBlank()) {
+                    add("--superkey")
+                    add(APApplication.superKey)
+                }
+                addAll(args)
+            }.joinToString(" ") { shellQuote(it) }
+            val out = ArrayList<String>()
+            val err = ArrayList<String>()
+            val result = shell.newJob()
+                .add("cd ${shellQuote(workDir.absolutePath)} && ASH_STANDALONE=1 $command")
+                .to(out, err)
+                .exec()
+            LocalApdResult(result.code, out + err)
+        }
+    }.getOrElse {
+        Log.e(TAG, "runLocalApdInRootShell failed", it)
+        LocalApdResult(-1, listOf(it.message ?: "runLocalApdInRootShell failed"))
+    }
+}
+
+private fun localApdNeedsAdbDir(vararg args: String): Boolean {
+    if (args.size < 2 || args[0] != "tool") {
+        return false
+    }
+    return when (args[1]) {
+        "ap", "package-config", "su-path" -> true
+        else -> false
+    }
+}
+
+fun runManagedApd(
+    vararg args: String,
+    withSuperKey: Boolean = true,
+    workDir: File = apApp.filesDir,
+): LocalApdResult {
+    val requireDataAdbAccess = localApdNeedsAdbDir(*args)
+    if (requireDataAdbAccess) {
+        val rooted = runLocalApdInRootShell(
+            *args,
+            requireDataAdbAccess = true,
+            withSuperKey = withSuperKey,
+            workDir = workDir,
+        )
+        if (rooted.isSuccess) {
+            return rooted
+        }
+        val direct = runLocalApd(*args, withSuperKey = withSuperKey, workDir = workDir)
+        return if (direct.isSuccess) direct else rooted
+    }
+
+    val direct = runLocalApd(*args, withSuperKey = withSuperKey, workDir = workDir)
+    if (direct.isSuccess) {
+        return direct
+    }
+    return runLocalApdInRootShell(
+        *args,
+        requireDataAdbAccess = false,
+        withSuperKey = withSuperKey,
+        workDir = workDir,
+    )
+}
+
+fun getLocalApdInfo(): Map<String, String> {
+    val result = runManagedApd("tool", "ap", "status")
+    if (!result.isSuccess) {
+        Log.w(TAG, "getLocalApdInfo failed: ${result.lines.joinToString(" | ")}")
+        return emptyMap()
+    }
+    return parseToolKv(result.lines)
+}
+
+fun installLocalApd(managerVersion: Long): LocalApdResult {
+    return runManagedApd("tool", "ap", "install", "--manager-version", managerVersion.toString())
+}
+
+fun uninstallLocalApd(): LocalApdResult {
+    return runManagedApd("tool", "ap", "uninstall")
+}
+
+fun readPersistedSuPath(): String? {
+    val result = runManagedApd("tool", "su-path", "get")
+    if (!result.isSuccess) {
+        Log.w(TAG, "readPersistedSuPath failed: ${result.lines.joinToString(" | ")}")
+        return null
+    }
+    return parseToolKv(result.lines)["su_path"]?.takeIf { it.isNotBlank() }
+}
+
+fun writePersistedSuPath(path: String): Boolean {
+    val result = runManagedApd("tool", "su-path", "set", "--path", path)
+    if (!result.isSuccess) {
+        Log.w(TAG, "writePersistedSuPath failed: ${result.lines.joinToString(" | ")}")
+    }
+    return result.isSuccess
 }
 
 fun execApd(args: String, newShell: Boolean = false): Boolean {

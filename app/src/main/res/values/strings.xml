@@ -140,6 +140,8 @@
     <string name="patch_policy_profile_full">Full feature hooks</string>
     <string name="patch_policy_no_su">No Root mode (disable SU hooks)</string>
     <string name="patch_policy_no_su_summary">Keep KernelPatch core features but disable built-in SU capability.</string>
+    <string name="patch_policy_apply_now">Apply to running kernel</string>
+    <string name="patch_policy_apply_now_result">Runtime apply result:</string>
 
     <string name="home_kernel">Kernel version</string>
     <string name="home_manager_version">Manager version</string>

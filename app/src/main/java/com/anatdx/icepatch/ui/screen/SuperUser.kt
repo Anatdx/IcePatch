@@ -36,6 +36,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -68,11 +69,10 @@ fun SuperUserScreen() {
     val viewModel = viewModel<SuperUserViewModel>()
     val scrollBehavior = pinnedScrollBehavior()
     val scope = rememberCoroutineScope()
+    val rootlessMode by APApplication.rootlessModeLiveData.observeAsState(false)
 
-    LaunchedEffect(Unit) {
-        if (viewModel.appList.isEmpty()) {
-            viewModel.fetchAppList()
-        }
+    LaunchedEffect(rootlessMode) {
+        viewModel.fetchAppList(rootlessMode)
     }
 
     Scaffold(
@@ -101,7 +101,7 @@ fun SuperUserScreen() {
                                     Text(stringResource(R.string.su_refresh))
                                 }, onClick = {
                                     scope.launch {
-                                        viewModel.fetchAppList()
+                                        viewModel.fetchAppList(rootlessMode)
                                     }
                                     showDropdown = false
                                 })
@@ -128,12 +128,12 @@ fun SuperUserScreen() {
 
         PullToRefreshBox(
             modifier = Modifier.padding(innerPadding),
-            onRefresh = { scope.launch { viewModel.fetchAppList() } },
+            onRefresh = { scope.launch { viewModel.fetchAppList(rootlessMode) } },
             isRefreshing = viewModel.isRefreshing
         ) {
             LazyColumn(Modifier.fillMaxSize()) {
                 items(viewModel.appList.filter { it.packageName != apApp.packageName }, key = { it.packageName + it.uid }) { app ->
-                    AppItem(app)
+                    AppItem(app, rootlessMode)
                 }
             }
         }
@@ -144,6 +144,7 @@ fun SuperUserScreen() {
 @Composable
 private fun AppItem(
     app: SuperUserViewModel.AppInfo,
+    rootlessMode: Boolean,
 ) {
     val config = app.config
     var showEditProfile by remember { mutableStateOf(false) }
@@ -151,16 +152,20 @@ private fun AppItem(
     var excludeApp by remember { mutableIntStateOf(config.exclude) }
 
     ListItem(
-        modifier = Modifier.clickable(onClick = {
-            if (!rootGranted) {
-                showEditProfile = !showEditProfile
-            } else {
-                rootGranted = false
-                config.allow = 0
-                Natives.revokeSu(app.uid)
-                PkgConfig.changeConfig(config)
-            }
-        }),
+        modifier = if (rootlessMode) {
+            Modifier
+        } else {
+            Modifier.clickable(onClick = {
+                if (!rootGranted) {
+                    showEditProfile = !showEditProfile
+                } else {
+                    rootGranted = false
+                    config.allow = 0
+                    Natives.revokeSu(app.uid)
+                    PkgConfig.changeConfig(config)
+                }
+            })
+        },
         headlineContent = { Text(app.label) },
         leadingContent = {
             AsyncImage(
@@ -182,7 +187,7 @@ private fun AppItem(
                     if (excludeApp == 1) {
                         LabelText(label = stringResource(id = R.string.su_pkg_excluded_label))
                     }
-                    if (rootGranted) {
+                    if (!rootlessMode && rootGranted) {
                         LabelText(label = config.profile.uid.toString())
                         LabelText(label = config.profile.toUid.toString())
                         LabelText(
@@ -197,30 +202,43 @@ private fun AppItem(
             }
         },
         trailingContent = {
-            Switch(checked = rootGranted, onCheckedChange = {
-                rootGranted = !rootGranted
-                if (rootGranted) {
-                    excludeApp = 0
-                    config.allow = 1
-                    config.exclude = 0
-                    config.profile.scontext = APApplication.MAGISK_SCONTEXT
-                } else {
-                    config.allow = 0
-                }
-                config.profile.uid = app.uid
-                PkgConfig.changeConfig(config)
-                if (config.allow == 1) {
-                    Natives.grantSu(app.uid, 0, config.profile.scontext)
-                    Natives.setUidExclude(app.uid, 0)
-                } else {
-                    Natives.revokeSu(app.uid)
-                }
-            })
+            if (rootlessMode) {
+                Switch(
+                    checked = excludeApp == 1,
+                    onCheckedChange = {
+                        excludeApp = if (it) 1 else 0
+                        config.allow = 0
+                        config.exclude = excludeApp
+                        config.profile.uid = app.uid
+                        Natives.setUidExclude(app.uid, excludeApp)
+                    }
+                )
+            } else {
+                Switch(checked = rootGranted, onCheckedChange = {
+                    rootGranted = !rootGranted
+                    if (rootGranted) {
+                        excludeApp = 0
+                        config.allow = 1
+                        config.exclude = 0
+                        config.profile.scontext = APApplication.MAGISK_SCONTEXT
+                    } else {
+                        config.allow = 0
+                    }
+                    config.profile.uid = app.uid
+                    PkgConfig.changeConfig(config)
+                    if (config.allow == 1) {
+                        Natives.grantSu(app.uid, 0, config.profile.scontext)
+                        Natives.setUidExclude(app.uid, 0)
+                    } else {
+                        Natives.revokeSu(app.uid)
+                    }
+                })
+            }
         },
     )
 
     AnimatedVisibility(
-        visible = showEditProfile && !rootGranted,
+        visible = !rootlessMode && showEditProfile && !rootGranted,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp)

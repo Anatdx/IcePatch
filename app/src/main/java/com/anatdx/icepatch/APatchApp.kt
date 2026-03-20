@@ -16,13 +16,18 @@ import com.anatdx.icepatch.ui.CrashHandleActivity
 import com.anatdx.icepatch.util.APatchCli
 import com.anatdx.icepatch.util.APatchKeyHelper
 import com.anatdx.icepatch.util.Version
-import com.anatdx.icepatch.util.getRootShell
+import com.anatdx.icepatch.util.getLocalApdInfo
+import com.anatdx.icepatch.util.installLocalApd
+import com.anatdx.icepatch.util.readPersistedSuPath
+import com.anatdx.icepatch.util.rootAvailable
 import com.anatdx.icepatch.util.rootShellForResult
+import com.anatdx.icepatch.util.uninstallLocalApd
 import com.anatdx.icepatch.util.verifyAppSignature
 import okhttp3.Cache
 import okhttp3.OkHttpClient
 import java.io.File
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.system.exitProcess
 
@@ -93,23 +98,97 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
         private val _rootlessModeLiveData = MutableLiveData(false)
         val rootlessModeLiveData: LiveData<Boolean> = _rootlessModeLiveData
 
+        private fun syncSuPathFromConfig() {
+            val desiredPath = readPersistedSuPath().orEmpty()
+            if (desiredPath.isBlank()) return
+
+            val currentPath = runCatching { Natives.suPath() }.getOrElse { "" }
+            if (currentPath != desiredPath) {
+                Log.d(TAG, "sync su path: $desiredPath")
+                Natives.resetSuPath(desiredPath)
+            }
+        }
+
+        private fun hasWorkingRootShell(): Boolean {
+            APatchCli.refresh()
+            return rootAvailable()
+        }
+
+        private fun parsePolicyFeature(lines: List<String>, key: String): Boolean? {
+            val expected = key.lowercase(Locale.US)
+            for (raw in lines) {
+                val trimmed = raw.trim()
+                if (!trimmed.lowercase(Locale.US).startsWith(expected)) continue
+                val value = trimmed.substringAfter(trimmed.takeWhile { !it.isWhitespace() }).trim()
+                    .lowercase(Locale.US)
+                return when (value) {
+                    "true" -> true
+                    "false" -> false
+                    else -> null
+                }
+            }
+            return null
+        }
+
+        // Rootless/rootful mode should follow kernel runtime policy, not app UID su authorization.
+        private fun probeRootlessModeFromPolicy(superKey: String): Boolean? {
+            if (superKey.isBlank()) return null
+            val nativeApd = File(apApp.applicationInfo.nativeLibraryDir, "libapd.so")
+            if (!nativeApd.exists()) return null
+
+            return runCatching {
+                val process = ProcessBuilder(
+                    nativeApd.path,
+                    "--superkey",
+                    superKey,
+                    "tool",
+                    "policy",
+                    "get",
+                ).redirectErrorStream(true).start()
+                val lines = process.inputStream.bufferedReader().use { it.readLines() }
+                if (!process.waitFor(3, TimeUnit.SECONDS)) {
+                    process.destroyForcibly()
+                    Log.w(TAG, "policy probe timed out")
+                    return@runCatching null
+                }
+                if (process.exitValue() != 0) {
+                    Log.w(TAG, "policy probe failed: rc=${process.exitValue()}")
+                    return@runCatching null
+                }
+                val suEnabled = parsePolicyFeature(lines, "feature.su")
+                val suCompatEnabled = parsePolicyFeature(lines, "feature.su_compat")
+                if (suEnabled == null || suCompatEnabled == null) {
+                    Log.w(TAG, "policy probe parse failed")
+                    null
+                } else {
+                    !(suEnabled && suCompatEnabled)
+                }
+            }.getOrElse {
+                Log.w(TAG, "policy probe exception: ${it.message}")
+                null
+            }
+        }
+
         @Suppress("DEPRECATION")
         fun uninstallApatch() {
             if (_apStateLiveData.value != State.ANDROIDPATCH_INSTALLED) return
+            val previousState = _apStateLiveData.value ?: State.ANDROIDPATCH_INSTALLED
             _apStateLiveData.value = State.ANDROIDPATCH_UNINSTALLING
 
-            Natives.resetSuPath(DEFAULT_SU_PATH)
-
-            val cmds = arrayOf(
-                "rm -f $APD_PATH",
-                "rm -f $KPATCH_PATH",
-                "rm -rf $APATCH_BIN_FOLDER",
-                "rm -rf $APATCH_LOG_FOLDER",
-                "rm -rf $APATCH_VERSION_PATH",
-            )
-
-            val shell = getRootShell()
-            shell.newJob().add(*cmds).to(logCallback, logCallback).exec()
+            var uninstallResult = uninstallLocalApd()
+            var commandOk = uninstallResult.isSuccess
+            var verifyRemoved = getLocalApdInfo()["ap_installed"] != "true"
+            uninstallResult.lines.forEach { logCallback.add(it) }
+            if (!commandOk || !verifyRemoved) {
+                Log.e(
+                    TAG,
+                    "uninstallApatch aborted: ${uninstallResult.lines.joinToString(" | ")}"
+                )
+                _apStateLiveData.postValue(previousState)
+                return
+            }
+            runCatching { Natives.resetSuPath(DEFAULT_SU_PATH) }
+                .onFailure { Log.w(TAG, "reset su path after uninstall failed: ${it.message}") }
 
             Log.d(TAG, "APatch uninstalled...")
             if (_kpStateLiveData.value == State.UNKNOWN_STATE) {
@@ -125,38 +204,24 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
             if (state != State.ANDROIDPATCH_NOT_INSTALLED && state != State.ANDROIDPATCH_NEED_UPDATE) {
                 return
             }
+            val previousState = state
             _apStateLiveData.value = State.ANDROIDPATCH_INSTALLING
-            val nativeDir = apApp.applicationInfo.nativeLibraryDir
-
-            Natives.resetSuPath(LEGACY_SU_PATH)
-
-            val cmds = arrayOf(
-                "mkdir -p $APATCH_BIN_FOLDER",
-                "mkdir -p $APATCH_LOG_FOLDER",
-
-                "cp -f ${nativeDir}/libapd.so $APD_PATH",
-                "chmod +x $APD_PATH",
-                "ln -s $APD_PATH $APD_LINK_PATH",
-                "restorecon $APD_PATH",
-
-                "cp -f ${nativeDir}/libmagiskpolicy.so $MAGISKPOLICY_BIN_PATH",
-                "chmod +x $MAGISKPOLICY_BIN_PATH",
-                "cp -f ${nativeDir}/libresetprop.so $RESETPROP_BIN_PATH",
-                "chmod +x $RESETPROP_BIN_PATH",
-                "cp -f ${nativeDir}/libbusybox.so $BUSYBOX_BIN_PATH",
-                "chmod +x $BUSYBOX_BIN_PATH",
-
-                "touch $PACKAGE_CONFIG_FILE",
-                "touch $SU_PATH_FILE",
-                "[ -s $SU_PATH_FILE ] || echo $LEGACY_SU_PATH > $SU_PATH_FILE",
-                "echo ${Version.getManagerVersion().second} > $APATCH_VERSION_PATH",
-                "restorecon -R $APATCH_FOLDER",
-
-                "${nativeDir}/libmagiskpolicy.so --magisk --live",
-            )
-
-            val shell = getRootShell()
-            shell.newJob().add(*cmds).to(logCallback, logCallback).exec()
+            var installResult = installLocalApd(Version.getManagerVersion().second)
+            val beforePath = runCatching { Natives.suPath() }.getOrElse { "unknown" }
+            Log.d(TAG, "installApatch attempt#1 suPathBefore=$beforePath")
+            installResult.lines.forEach { logCallback.add(it) }
+            var commandOk = installResult.isSuccess
+            var verifyInstalled = getLocalApdInfo()["ap_installed"] == "true"
+            if (!commandOk || !verifyInstalled) {
+                Log.e(
+                    TAG,
+                    "installApatch aborted: ${installResult.lines.joinToString(" | ")}"
+                )
+                _apStateLiveData.postValue(previousState)
+                return
+            }
+            runCatching { Natives.resetSuPath(LEGACY_SU_PATH) }
+                .onFailure { Log.w(TAG, "set su path after install failed: ${it.message}") }
 
             // clear shell cache
             APatchCli.refresh()
@@ -188,14 +253,25 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
                 APatchCli.refresh()
 
                 thread {
-                    val rc = Natives.su(0, null)
-                    if (!rc) {
-                        Log.e(TAG, "Native.su failed")
-                        _rootlessModeLiveData.postValue(true)
-                        _apStateLiveData.postValue(State.ANDROIDPATCH_NOT_INSTALLED)
-                        return@thread
+                    val policyRootless = probeRootlessModeFromPolicy(value)
+                    if (policyRootless != null) {
+                        _rootlessModeLiveData.postValue(policyRootless)
+                        if (policyRootless) {
+                            _apStateLiveData.postValue(State.ANDROIDPATCH_NOT_INSTALLED)
+                            return@thread
+                        }
+                        syncSuPathFromConfig()
+                    } else {
+                        val rc = hasWorkingRootShell()
+                        if (!rc) {
+                            Log.w(TAG, "policy probe unavailable and no working root shell found")
+                            _rootlessModeLiveData.postValue(true)
+                            _apStateLiveData.postValue(State.ANDROIDPATCH_NOT_INSTALLED)
+                            return@thread
+                        }
+                        _rootlessModeLiveData.postValue(false)
+                        syncSuPathFromConfig()
                     }
-                    _rootlessModeLiveData.postValue(false)
 
                     // KernelPatch version
                     //val buildV = Version.buildKPVUInt()
@@ -223,21 +299,12 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
                     val installedApdVInt = Version.installedApdVUInt()
                     Log.d(TAG, "manager version: $mgv, installed apd version: $installedApdVInt")
 
-                    if (Version.installedApdVInt > 0) {
+                    if (installedApdVInt > 0) {
                         _apStateLiveData.postValue(State.ANDROIDPATCH_INSTALLED)
                     }
 
-                    if (Version.installedApdVInt > 0 && mgv.toInt() != Version.installedApdVInt) {
+                    if (installedApdVInt > 0 && mgv.toInt() != installedApdVInt) {
                         _apStateLiveData.postValue(State.ANDROIDPATCH_NEED_UPDATE)
-                        // su path
-                        val suPathFile = File(SU_PATH_FILE)
-                        if (suPathFile.exists()) {
-                            val suPath = suPathFile.readLines()[0].trim()
-                            if (Natives.suPath() != suPath) {
-                                Log.d(TAG, "su path: $suPath")
-                                Natives.resetSuPath(suPath)
-                            }
-                        }
                     }
                     Log.d(TAG, "ap state: " + _apStateLiveData.value)
 

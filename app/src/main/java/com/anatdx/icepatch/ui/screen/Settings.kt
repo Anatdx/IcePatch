@@ -94,8 +94,8 @@ import com.anatdx.icepatch.util.APatchKeyHelper
 import com.anatdx.icepatch.util.getBugreportFile
 import com.anatdx.icepatch.util.isGlobalNamespaceEnabled
 import com.anatdx.icepatch.util.outputStream
-import com.anatdx.icepatch.util.rootShellForResult
 import com.anatdx.icepatch.util.setGlobalNamespaceEnabled
+import com.anatdx.icepatch.util.writePersistedSuPath
 import com.anatdx.icepatch.util.ui.APDialogBlurBehindUtils
 import com.anatdx.icepatch.util.ui.LocalSnackbarHost
 import com.anatdx.icepatch.util.ui.NavigationBarsSpacer
@@ -564,7 +564,9 @@ fun ResetSUPathDialog(showDialog: MutableState<Boolean>) {
                             if (success) R.string.success else R.string.failure,
                             Toast.LENGTH_SHORT
                         ).show()
-                        rootShellForResult("echo $suPath > ${APApplication.SU_PATH_FILE}")
+                        if (success) {
+                            writePersistedSuPath(suPath)
+                        }
                     }) {
                         Text(stringResource(id = android.R.string.ok))
                     }

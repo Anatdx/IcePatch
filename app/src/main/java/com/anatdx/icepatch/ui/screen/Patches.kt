@@ -497,29 +497,60 @@ internal fun PatchPolicyView(viewModel: PatchesViewModel) {
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 12.dp)
+            if (viewModel.policyProfile != PatchesViewModel.PolicyProfile.MINIMAL) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        text = stringResource(R.string.patch_policy_no_su),
-                        style = MaterialTheme.typography.bodyMedium
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 12.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.patch_policy_no_su),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = stringResource(R.string.patch_policy_no_su_summary),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    Switch(
+                        checked = viewModel.policyNoSu,
+                        onCheckedChange = { viewModel.policyNoSu = it }
                     )
+                }
+            }
+
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { viewModel.applyPolicyNow() },
+                enabled = !viewModel.policyApplyingNow && viewModel.checkSuperKeyValidation(viewModel.superkey),
+            ) {
+                if (viewModel.policyApplyingNow) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(text = stringResource(R.string.patch_policy_apply_now))
+            }
+
+            if (viewModel.policyApplyNowLog.isNotBlank()) {
+                Text(
+                    text = stringResource(R.string.patch_policy_apply_now_result),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                SelectionContainer {
                     Text(
-                        text = stringResource(R.string.patch_policy_no_su_summary),
+                        text = viewModel.policyApplyNowLog,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
-                Switch(
-                    checked = viewModel.policyNoSu,
-                    onCheckedChange = { viewModel.policyNoSu = it }
-                )
             }
         }
     }

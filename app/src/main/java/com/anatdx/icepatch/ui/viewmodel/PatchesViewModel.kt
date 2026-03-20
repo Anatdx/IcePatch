@@ -23,6 +23,7 @@ import com.topjohnwu.superuser.nio.ExtendedFile
 import com.topjohnwu.superuser.nio.FileSystemManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.anatdx.icepatch.APApplication
 import com.anatdx.icepatch.BuildConfig
 import com.anatdx.icepatch.R
@@ -160,10 +161,14 @@ class PatchesViewModel : ViewModel() {
         val args = mutableListOf<String>()
         args.add("--policy-profile")
         args.add(policyProfile.cliValue)
-        if (policyNoSu) {
+        if (effectivePolicyNoSu()) {
             args.add("--policy-no-su")
         }
         return args
+    }
+
+    private fun effectivePolicyNoSu(): Boolean {
+        return policyProfile != PolicyProfile.MINIMAL && policyNoSu
     }
 
     private fun buildExtraPatchArgs(): List<String> {
@@ -223,6 +228,8 @@ class PatchesViewModel : ViewModel() {
     var superkey by mutableStateOf(APApplication.superKey)
     var policyProfile by mutableStateOf(PolicyProfile.MINIMAL)
     var policyNoSu by mutableStateOf(false)
+    var policyApplyingNow by mutableStateOf(false)
+    var policyApplyNowLog by mutableStateOf("")
     var existedExtras = mutableStateListOf<KPModel.IExtraInfo>()
     var newExtras = mutableStateListOf<KPModel.IExtraInfo>()
     var newExtrasFileName = mutableListOf<String>()
@@ -302,6 +309,25 @@ class PatchesViewModel : ViewModel() {
                 val s = line ?: ""
                 lines.add(s)
                 logs.add(s)
+            }
+        }
+        val code = process.waitFor()
+        return ProcessRunResult(code, lines)
+    }
+
+    private fun runApdLocalLines(apdPath: String, args: List<String>): ProcessRunResult {
+        val command = mutableListOf(apdPath)
+        command.addAll(args)
+        val builder = ProcessBuilder(command)
+        builder.environment()["ASH_STANDALONE"] = "1"
+        builder.directory(File(apApp.filesDir.absolutePath))
+        builder.redirectErrorStream(true)
+        val process = builder.start()
+        val lines = mutableListOf<String>()
+        BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
+            var line: String?
+            while (reader.readLine().also { line = it } != null) {
+                lines.add(line ?: "")
             }
         }
         val code = process.waitFor()
@@ -661,6 +687,8 @@ class PatchesViewModel : ViewModel() {
         kpimgInfo = KPModel.KPImgInfo("", "", "", "", "")
         policyProfile = PolicyProfile.MINIMAL
         policyNoSu = false
+        policyApplyingNow = false
+        policyApplyNowLog = ""
         error = ""
         existedExtras.clear()
         newExtras.clear()
@@ -671,6 +699,62 @@ class PatchesViewModel : ViewModel() {
         patchdone = false
         needReboot = false
         patchLog = ""
+    }
+
+    fun applyPolicyNow() {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (policyApplyingNow || patching) return@launch
+            if (!checkSuperKeyValidation(superkey)) {
+                val msg = "Invalid SuperKey."
+                error = msg
+                policyApplyNowLog = msg
+                return@launch
+            }
+            policyApplyingNow = true
+            policyApplyNowLog = ""
+            error = ""
+
+            val nativeApd = File(apApp.applicationInfo.nativeLibraryDir, "libapd.so")
+            val apdPath = if (nativeApd.exists()) nativeApd.path else APApplication.APD_PATH
+
+            val args = mutableListOf(
+                "--superkey", superkey,
+                "tool", "policy", "apply",
+                "--profile", policyProfile.cliValue
+            )
+            if (effectivePolicyNoSu()) {
+                args.add("--no-su")
+            }
+
+            val result = runCatching { runApdLocalLines(apdPath, args) }
+                .getOrElse {
+                    policyApplyingNow = false
+                    val msg = "Apply runtime policy failed: ${it.message ?: it.javaClass.simpleName}"
+                    error = msg
+                    policyApplyNowLog = msg
+                    return@launch
+                }
+
+            val output = result.lines.joinToString("\n")
+            if (!result.isSuccess) {
+                val msg = buildString {
+                    append("Apply runtime policy failed (exit code ${result.code})")
+                    if (output.isNotBlank()) {
+                        append('\n')
+                        append(output)
+                    }
+                }
+                error = msg
+                policyApplyNowLog = msg
+            } else {
+                policyApplyNowLog = output
+                // Refresh rootless/full mode after runtime policy switch.
+                withContext(Dispatchers.Main.immediate) {
+                    APApplication.superKey = APApplication.superKey
+                }
+            }
+            policyApplyingNow = false
+        }
     }
 
     fun embedKPM(uri: Uri) {
@@ -976,7 +1060,7 @@ class PatchesViewModel : ViewModel() {
             }
 
             if (succ) {
-                logs.add("- Policy profile: ${policyProfile.cliValue}, no-su: ${if (policyNoSu) "on" else "off"}")
+                logs.add("- Policy profile: ${policyProfile.cliValue}, no-su: ${if (effectivePolicyNoSu()) "on" else "off"}")
                 logs.add("- Patch output file: $patchedKernelOut")
                 val patchArgs = mutableListOf(
                     "tool",

@@ -15,6 +15,7 @@ namespace {
 constexpr const char* kPackageConfigPath = "/data/adb/ap/package_config";
 constexpr const char* kPackageConfigTmpPath = "/data/adb/ap/package_config.tmp";
 constexpr const char* kPackagesListPath = "/data/system/packages.list";
+constexpr const char* kWorkingDir = "/data/adb/ap";
 
 std::vector<std::string> SplitCsvLine(const std::string& line) {
   std::vector<std::string> cols;
@@ -53,9 +54,16 @@ bool ParseIntField(const std::string& raw, int* out) {
   }
 }
 
+bool IsDefaultConfig(const PackageConfig& config) {
+  return config.allow == 0 && config.exclude == 0;
+}
+
 }  // namespace
 
 std::vector<PackageConfig> ReadApPackageConfig() {
+  if (!FileExists(kPackageConfigPath)) {
+    return {};
+  }
   const int max_retry = 5;
   for (int i = 0; i < max_retry; ++i) {
     std::ifstream ifs(kPackageConfigPath);
@@ -91,6 +99,10 @@ std::vector<PackageConfig> ReadApPackageConfig() {
 }
 
 bool WriteApPackageConfig(const std::vector<PackageConfig>& configs) {
+  if (!EnsureDirExists(kWorkingDir)) {
+    LOGW("Error creating %s", kWorkingDir);
+    return false;
+  }
   const int max_retry = 5;
   for (int i = 0; i < max_retry; ++i) {
     std::ofstream ofs(kPackageConfigTmpPath, std::ios::out | std::ios::trunc);
@@ -117,6 +129,33 @@ bool WriteApPackageConfig(const std::vector<PackageConfig>& configs) {
     return true;
   }
   return false;
+}
+
+bool UpsertApPackageConfig(const PackageConfig& config) {
+  auto configs = ReadApPackageConfig();
+  configs.erase(std::remove_if(configs.begin(), configs.end(),
+                               [&](const PackageConfig& item) {
+                                 return item.uid == config.uid;
+                               }),
+                configs.end());
+  if (!IsDefaultConfig(config)) {
+    configs.push_back(config);
+  }
+  return WriteApPackageConfig(configs);
+}
+
+bool RemoveApPackageConfigByUid(int uid) {
+  auto configs = ReadApPackageConfig();
+  const size_t before = configs.size();
+  configs.erase(std::remove_if(configs.begin(), configs.end(),
+                               [&](const PackageConfig& item) {
+                                 return item.uid == uid;
+                               }),
+                configs.end());
+  if (before == configs.size()) {
+    return true;
+  }
+  return WriteApPackageConfig(configs);
 }
 
 bool SynchronizePackageUid() {

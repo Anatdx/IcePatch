@@ -308,6 +308,283 @@ constexpr std::size_t kPatchExtraItemLen = 128;
 constexpr std::size_t kExtraAlign = 16;
 constexpr std::size_t kExtraNameLen = 32;
 constexpr std::size_t kExtraEventLen = 32;
+constexpr std::uint32_t kPolicySlotMagic = 0x4b504f4cU;
+constexpr std::uint16_t kPolicySlotVersion = 1;
+constexpr std::uint16_t kPolicySlotSize = 0x20;
+constexpr std::size_t kPolicyAdditionalTextOffset = kPolicySlotSize;
+
+constexpr int kPolicyProfileMinimal = 0;
+constexpr int kPolicyProfileRootful = 1;
+constexpr int kPolicyProfileKpmSupport = 2;
+constexpr int kPolicyProfileFull = 3;
+
+constexpr std::uint32_t kPolicyFlagKcfiBypass = (1u << 0);
+constexpr std::uint32_t kPolicyFlagTaskObserver = (1u << 1);
+constexpr std::uint32_t kPolicyFlagSelinuxBypass = (1u << 2);
+constexpr std::uint32_t kPolicyFlagSupercall = (1u << 3);
+constexpr std::uint32_t kPolicyFlagKstorage = (1u << 4);
+constexpr std::uint32_t kPolicyFlagSu = (1u << 5);
+constexpr std::uint32_t kPolicyFlagSuCompat = (1u << 6);
+constexpr std::uint32_t kPolicyFlagAndroidUser = (1u << 7);
+constexpr std::uint32_t kPolicyFlagFsApi = (1u << 8);
+
+struct PolicySlot {
+  std::uint32_t magic = 0;
+  std::uint16_t version = 0;
+  std::uint16_t size = 0;
+  std::uint32_t profile = 0;
+  std::uint32_t feature_flags = 0;
+  std::uint32_t option_flags = 0;
+  std::uint32_t reserved0 = 0;
+  std::uint32_t reserved1 = 0;
+  std::uint32_t reserved2 = 0;
+};
+
+std::string ToLowerAscii(std::string value) {
+  std::transform(
+      value.begin(), value.end(), value.begin(),
+      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  return value;
+}
+
+bool IsPolicyAddition(const std::string& addition) {
+  const std::size_t eq = addition.find('=');
+  if (eq == std::string::npos || eq == 0) {
+    return false;
+  }
+  const std::string key = ToLowerAscii(addition.substr(0, eq));
+  return key == "policy" || key == "mode" || key == "profile" ||
+         key == "hook.profile" || key == "no_su" ||
+         key.rfind("feature.", 0) == 0;
+}
+
+bool ParsePolicyBoolText(const std::string& value, bool* out) {
+  if (out == nullptr) {
+    return false;
+  }
+  const std::string lower = ToLowerAscii(value);
+  if (lower == "1" || lower == "y" || lower == "yes" || lower == "on" ||
+      lower == "true" || lower == "enable" || lower == "enabled") {
+    *out = true;
+    return true;
+  }
+  if (lower == "0" || lower == "n" || lower == "no" || lower == "off" ||
+      lower == "false" || lower == "disable" || lower == "disabled") {
+    *out = false;
+    return true;
+  }
+  return false;
+}
+
+std::uint32_t PolicyFlagsForProfile(int profile) {
+  switch (profile) {
+    case kPolicyProfileMinimal:
+      return kPolicyFlagKcfiBypass | kPolicyFlagSupercall | kPolicyFlagKstorage;
+    case kPolicyProfileRootful:
+      return kPolicyFlagKcfiBypass | kPolicyFlagTaskObserver |
+             kPolicyFlagSelinuxBypass | kPolicyFlagSupercall |
+             kPolicyFlagKstorage | kPolicyFlagSu | kPolicyFlagSuCompat |
+             kPolicyFlagAndroidUser;
+    case kPolicyProfileKpmSupport:
+      return kPolicyFlagKcfiBypass | kPolicyFlagSupercall | kPolicyFlagKstorage;
+    case kPolicyProfileFull:
+      return PolicyFlagsForProfile(kPolicyProfileRootful) | kPolicyFlagFsApi;
+    default:
+      return 0;
+  }
+}
+
+std::uint32_t NormalizePolicyFlags(std::uint32_t flags) {
+  if ((flags & (kPolicyFlagSuCompat | kPolicyFlagAndroidUser)) != 0) {
+    flags |= kPolicyFlagSu;
+  }
+  if ((flags & kPolicyFlagAndroidUser) != 0) {
+    flags |= kPolicyFlagSuCompat;
+  }
+  if ((flags & kPolicyFlagSu) != 0) {
+    flags |= kPolicyFlagSupercall;
+    flags |= kPolicyFlagKstorage;
+  }
+  if ((flags & kPolicyFlagSupercall) == 0) {
+    flags &= ~(kPolicyFlagSu | kPolicyFlagSuCompat | kPolicyFlagAndroidUser);
+  }
+  return flags;
+}
+
+std::uint32_t FeatureFlagFromName(const std::string& lower_name) {
+  if (lower_name == "kcfi" || lower_name == "kcfi_bypass") {
+    return kPolicyFlagKcfiBypass;
+  }
+  if (lower_name == "task" || lower_name == "task_observer") {
+    return kPolicyFlagTaskObserver;
+  }
+  if (lower_name == "selinux" || lower_name == "selinux_bypass") {
+    return kPolicyFlagSelinuxBypass;
+  }
+  if (lower_name == "supercall") {
+    return kPolicyFlagSupercall;
+  }
+  if (lower_name == "kstorage") {
+    return kPolicyFlagKstorage;
+  }
+  if (lower_name == "su") {
+    return kPolicyFlagSu;
+  }
+  if (lower_name == "su_compat") {
+    return kPolicyFlagSuCompat;
+  }
+  if (lower_name == "android_user") {
+    return kPolicyFlagAndroidUser;
+  }
+  if (lower_name == "fsapi" || lower_name == "fs_api") {
+    return kPolicyFlagFsApi;
+  }
+  return 0;
+}
+
+bool ApplyPolicyProfileName(const std::string& lower_profile, std::uint32_t* flags,
+                            std::uint32_t* profile) {
+  if (flags == nullptr || profile == nullptr || lower_profile.empty()) {
+    return false;
+  }
+  auto set_profile = [&](std::uint32_t next_profile) {
+    *profile = next_profile;
+    *flags = PolicyFlagsForProfile(static_cast<int>(next_profile));
+  };
+  if (lower_profile == "minimal") {
+    set_profile(static_cast<std::uint32_t>(kPolicyProfileMinimal));
+    return true;
+  }
+  if (lower_profile == "legacy" || lower_profile == "rootful") {
+    set_profile(static_cast<std::uint32_t>(kPolicyProfileRootful));
+    return true;
+  }
+  if (lower_profile == "kpm" || lower_profile == "kpm-support" ||
+      lower_profile == "kpm_support") {
+    set_profile(static_cast<std::uint32_t>(kPolicyProfileKpmSupport));
+    return true;
+  }
+  if (lower_profile == "full") {
+    set_profile(static_cast<std::uint32_t>(kPolicyProfileFull));
+    return true;
+  }
+  if (lower_profile == "no-su" || lower_profile == "no_su" || lower_profile == "nosu") {
+    set_profile(static_cast<std::uint32_t>(kPolicyProfileMinimal));
+    return true;
+  }
+  return false;
+}
+
+void ApplyPolicyAddition(const std::string& addition, std::uint32_t* flags,
+                         std::uint32_t* profile) {
+  if (flags == nullptr || profile == nullptr) {
+    return;
+  }
+  const std::size_t eq = addition.find('=');
+  if (eq == std::string::npos || eq == 0 || eq + 1 >= addition.size()) {
+    return;
+  }
+  const std::string key = ToLowerAscii(addition.substr(0, eq));
+  const std::string value = ToLowerAscii(addition.substr(eq + 1));
+
+  if (key == "policy" || key == "profile" || key == "hook.profile") {
+    ApplyPolicyProfileName(value, flags, profile);
+    return;
+  }
+  if (key == "mode") {
+    if (value == "no-su") {
+      *flags &= ~(kPolicyFlagTaskObserver | kPolicyFlagSelinuxBypass |
+                  kPolicyFlagSu | kPolicyFlagSuCompat | kPolicyFlagAndroidUser);
+      return;
+    }
+    ApplyPolicyProfileName(value, flags, profile);
+    return;
+  }
+  if (key == "no_su") {
+    bool enabled = false;
+    if (ParsePolicyBoolText(value, &enabled) && enabled) {
+      *flags &= ~(kPolicyFlagTaskObserver | kPolicyFlagSelinuxBypass |
+                  kPolicyFlagSu | kPolicyFlagSuCompat | kPolicyFlagAndroidUser);
+    }
+    return;
+  }
+  if (key.rfind("feature.", 0) == 0) {
+    const std::uint32_t feature = FeatureFlagFromName(key.substr(8));
+    bool enabled = false;
+    if (feature == 0 || !ParsePolicyBoolText(value, &enabled)) {
+      return;
+    }
+    if (enabled) {
+      *flags |= feature;
+    } else {
+      *flags &= ~feature;
+    }
+  }
+}
+
+PolicySlot BuildPolicySlot(const std::vector<std::string>& additions) {
+  PolicySlot slot{};
+  slot.magic = kPolicySlotMagic;
+  slot.version = kPolicySlotVersion;
+  slot.size = kPolicySlotSize;
+  slot.profile = static_cast<std::uint32_t>(kPolicyProfileMinimal);
+
+  std::uint32_t flags = PolicyFlagsForProfile(kPolicyProfileMinimal);
+  for (const auto& addition : additions) {
+    ApplyPolicyAddition(addition, &flags, &slot.profile);
+  }
+  flags = NormalizePolicyFlags(flags);
+  slot.feature_flags = flags;
+  return slot;
+}
+
+void WritePolicySlot(std::vector<std::uint8_t>* data, std::size_t off, const PolicySlot& slot) {
+  if (data == nullptr || off + kPolicySlotSize > data->size()) {
+    throw std::runtime_error("policy slot write out of range");
+  }
+  WriteLe32(data, off + 0, slot.magic);
+  (*data)[off + 4] = static_cast<std::uint8_t>(slot.version & 0xFFu);
+  (*data)[off + 5] = static_cast<std::uint8_t>((slot.version >> 8) & 0xFFu);
+  (*data)[off + 6] = static_cast<std::uint8_t>(slot.size & 0xFFu);
+  (*data)[off + 7] = static_cast<std::uint8_t>((slot.size >> 8) & 0xFFu);
+  WriteLe32(data, off + 8, slot.profile);
+  WriteLe32(data, off + 12, slot.feature_flags);
+  WriteLe32(data, off + 16, slot.option_flags);
+  WriteLe32(data, off + 20, slot.reserved0);
+  WriteLe32(data, off + 24, slot.reserved1);
+  WriteLe32(data, off + 28, slot.reserved2);
+}
+
+std::optional<PolicySlot> ParsePolicySlot(const std::vector<std::uint8_t>& data, std::size_t off) {
+  if (off + kPolicySlotSize > data.size()) {
+    return std::nullopt;
+  }
+  if (ReadLe32(data, off + 0) != kPolicySlotMagic) {
+    return std::nullopt;
+  }
+  PolicySlot slot{};
+  slot.magic = ReadLe32(data, off + 0);
+  slot.version = static_cast<std::uint16_t>(data[off + 4] | (data[off + 5] << 8));
+  slot.size = static_cast<std::uint16_t>(data[off + 6] | (data[off + 7] << 8));
+  slot.profile = ReadLe32(data, off + 8);
+  slot.feature_flags = ReadLe32(data, off + 12);
+  slot.option_flags = ReadLe32(data, off + 16);
+  slot.reserved0 = ReadLe32(data, off + 20);
+  slot.reserved1 = ReadLe32(data, off + 24);
+  slot.reserved2 = ReadLe32(data, off + 28);
+  return slot;
+}
+
+std::size_t PolicyTextOffset(const std::optional<PolicySlot>& slot) {
+  if (!slot.has_value()) {
+    return 0;
+  }
+  const std::size_t size = slot->size;
+  if (size >= kPolicySlotSize && size <= kPresetAdditionalLen) {
+    return size;
+  }
+  return kPolicyAdditionalTextOffset;
+}
 
 constexpr std::int32_t kExtraTypeNone = 0;
 constexpr std::int32_t kExtraTypeKpm = 1;
@@ -343,7 +620,8 @@ std::vector<std::string> ParseAdditionalEntries(const std::vector<std::uint8_t>&
     throw std::runtime_error("additional range out of bounds");
   }
   std::vector<std::string> out;
-  std::size_t pos = off;
+  const auto slot = ParsePolicySlot(data, off);
+  std::size_t pos = off + PolicyTextOffset(slot);
   while (pos < off + kPresetAdditionalLen) {
     const std::uint8_t len = data[pos++];
     if (len == 0) {
@@ -616,6 +894,17 @@ void PrintPresetDetails(const std::vector<std::uint8_t>& image, std::size_t pres
   const std::string root_key_hex =
       HexEncode(image.data() + static_cast<std::ptrdiff_t>(preset_off + kPresetRootSuperKeyOffset), kRootSuperKeyLen);
   PrintKey("root_superkey", root_key_hex);
+
+  const auto policy_slot = ParsePolicySlot(image, preset_off + kPresetAdditionalOffset);
+  PrintKey("policy_slot", policy_slot.has_value() ? "true" : "false");
+  if (policy_slot.has_value()) {
+    PrintHex("policy_slot_magic", policy_slot->magic);
+    PrintKey("policy_slot_version", std::to_string(policy_slot->version));
+    PrintKey("policy_slot_size", std::to_string(policy_slot->size));
+    PrintKey("policy_slot_profile", std::to_string(policy_slot->profile));
+    PrintHex("policy_slot_flags", policy_slot->feature_flags);
+    PrintHex("policy_slot_options", policy_slot->option_flags);
+  }
 
   const auto additional = ParseAdditionalEntries(image, preset_off + kPresetAdditionalOffset);
   PrintKey("additional_num", std::to_string(additional.size()));
@@ -1160,8 +1449,13 @@ bool PatchKernelImage(const std::string& image_path,
       std::fill_n(out_kimg.begin() + static_cast<std::ptrdiff_t>(preset_off + kPresetAdditionalOffset),
                   static_cast<std::ptrdiff_t>(kPresetAdditionalLen),
                   static_cast<std::uint8_t>(0));
-      std::size_t addition_pos = preset_off + kPresetAdditionalOffset;
+      const PolicySlot policy_slot = BuildPolicySlot(additions);
+      WritePolicySlot(&out_kimg, preset_off + kPresetAdditionalOffset, policy_slot);
+      std::size_t addition_pos = preset_off + kPresetAdditionalOffset + kPolicyAdditionalTextOffset;
       for (const auto& kv : additions) {
+        if (IsPolicyAddition(kv)) {
+          continue;
+        }
         if (kv.find('=') == std::string::npos) {
           throw std::runtime_error("addition must be KEY=VALUE: " + kv);
         }

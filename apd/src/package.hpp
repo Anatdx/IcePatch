@@ -16,6 +16,8 @@ struct PackageConfig {
 
 std::vector<PackageConfig> ReadApPackageConfig();
 bool WriteApPackageConfig(const std::vector<PackageConfig>& configs);
+bool UpsertApPackageConfig(const PackageConfig& config);
+bool RemoveApPackageConfigByUid(int uid);
 bool SynchronizePackageUid();
 
 }  // namespace apd

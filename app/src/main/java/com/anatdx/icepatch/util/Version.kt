@@ -6,11 +6,9 @@ import com.anatdx.icepatch.APApplication
 import com.anatdx.icepatch.BuildConfig
 import com.anatdx.icepatch.Natives
 import com.anatdx.icepatch.apApp
-import com.anatdx.icepatch.util.withNewRootShell
-import com.topjohnwu.superuser.ShellUtils
-import com.topjohnwu.superuser.Shell
 import java.io.File
 import java.io.BufferedReader
+import java.io.IOException
 import java.io.InputStreamReader
 
 
@@ -40,17 +38,20 @@ object Version {
     }
 
     fun getKpImg(): String {
-        val patchDir = File(apApp.filesDir.parent, "check")
-        patchDir.deleteRecursively()
-        patchDir.mkdirs()
-
-        val kpimg = File(patchDir, "kpimg")
-        apApp.assets.open("kpimg").writeTo(kpimg)
-
         val apd = File(apApp.applicationInfo.nativeLibraryDir, "libapd.so")
         if (!apd.exists()) return "unknown"
 
         return runCatching {
+            val workDir = File(apApp.cacheDir, "kpimg_inspect")
+            if (!workDir.exists() && !workDir.mkdirs()) {
+                throw IOException("Failed to create temp dir: ${workDir.absolutePath}")
+            }
+
+            val kpimg = File(workDir, "kpimg")
+            apApp.assets.open("kpimg").use { input ->
+                kpimg.outputStream().use { output -> input.copyTo(output) }
+            }
+
             val process = ProcessBuilder(
                 apd.path,
                 "tool",
@@ -130,30 +131,22 @@ object Version {
             return matches.lastOrNull()?.value ?: ""
         }
 
-        fun rootCmd(cmd: String): String {
-            return withNewRootShell { ShellUtils.fastCmd(this, cmd) }.trim()
-        }
-
-        fun rootOk(cmd: String): Boolean {
-            return withNewRootShell { ShellUtils.fastCmdResult(this, cmd) }
-        }
-
-        val hasApd = rootOk("[ -x ${APApplication.APD_PATH} ]")
-        if (!hasApd) {
+        val apInfo = getLocalApdInfo()
+        val installed = apInfo["ap_installed"] == "true"
+        if (!installed) {
             installedApdVString = "0"
             return installedApdVString
         }
 
-        val apdVer = parseVersion(rootCmd("${APApplication.APD_PATH} -V"))
+        val apdVer = parseVersion(apInfo["ap_version_code"].orEmpty())
         if (apdVer.isNotEmpty()) {
             installedApdVString = apdVer
             Log.i("APatch", "[installedApdVString@Version] apdVer=$installedApdVString")
             return installedApdVString
         }
 
-        val fileVer = parseVersion(rootCmd("cat ${APApplication.APATCH_VERSION_PATH}"))
-        installedApdVString = if (fileVer.isNotEmpty()) fileVer else "0"
-        Log.i("APatch", "[installedApdVString@Version] fileVer=$installedApdVString")
+        installedApdVString = "0"
+        Log.i("APatch", "[installedApdVString@Version] status parse fallback=0")
         return installedApdVString
     }
 

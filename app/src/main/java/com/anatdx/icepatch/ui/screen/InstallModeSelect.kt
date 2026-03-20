@@ -183,6 +183,12 @@ fun InstallModeSelectScreen(
                 }
             )
 
+            if (installMethod !is InstallMethod.Unpatch) {
+                Spacer(Modifier.height(12.dp))
+                SetSuperKeyView(viewModel)
+                PatchPolicyView(viewModel)
+            }
+
             AnimatedVisibility(
                 visible = installMethod != null,
                 enter = fadeIn() + expandVertically(),
@@ -211,11 +217,6 @@ fun InstallModeSelectScreen(
                                     viewModel.copyAndParseBootimg(uri)
                                 }
                             )
-                        }
-
-                        if (mode != PatchesViewModel.PatchMode.UNPATCH) {
-                            SetSuperKeyView(viewModel)
-                            PatchPolicyView(viewModel)
                         }
 
                         if (mode == PatchesViewModel.PatchMode.PATCH_AND_INSTALL || mode == PatchesViewModel.PatchMode.INSTALL_TO_NEXT_SLOT) {

@@ -1263,7 +1263,22 @@ bool PatchKernelImage(const std::string& image_path,
       }
     }
 
-    const std::size_t ori_kimg_size = patched_off.has_value() ? *patched_off : kimg.size();
+    std::size_t ori_kimg_size = kimg.size();
+    if (patched_off.has_value()) {
+      const std::size_t saved_kimg_size_off = *patched_off + kPresetKimgSizeOffset;
+      if (saved_kimg_size_off + 8 <= kimg.size()) {
+        const std::size_t saved_kimg_size =
+            static_cast<std::size_t>(ReadLe64(kimg, saved_kimg_size_off));
+        if (saved_kimg_size > 0 && saved_kimg_size <= *patched_off &&
+            AlignUp(saved_kimg_size, 4096) == *patched_off) {
+          ori_kimg_size = saved_kimg_size;
+        } else {
+          ori_kimg_size = *patched_off;
+        }
+      } else {
+        ori_kimg_size = *patched_off;
+      }
+    }
     const std::size_t align_kimg = AlignUp(ori_kimg_size, 4096);
     const std::size_t align_kpimg = AlignUp(kpimg.size(), 16);
     const std::size_t planned_out_size = align_kimg + align_kpimg + extra_blob_size;
@@ -1426,8 +1441,22 @@ bool PatchKernelImage(const std::string& image_path,
         write_patch_u64(13, probe.input_handle_event_offset);
       }
 
-      std::copy_n(kimg.begin(), static_cast<std::ptrdiff_t>(kHeaderBackupLen),
-                  out_kimg.begin() + static_cast<std::ptrdiff_t>(preset_off + kPresetHeaderBackupOffset));
+      if (patched_off.has_value()) {
+        const std::size_t old_header_backup =
+            *patched_off + kPresetHeaderBackupOffset;
+        if (old_header_backup + kHeaderBackupLen > kimg.size()) {
+          throw std::runtime_error("input preset header backup out of range");
+        }
+        // Repatching must preserve the original kernel header bytes saved by
+        // the first patch. Copying the current image head would re-save the
+        // already-patched branch instruction and break early boot.
+        std::copy_n(kimg.begin() + static_cast<std::ptrdiff_t>(old_header_backup),
+                    static_cast<std::ptrdiff_t>(kHeaderBackupLen),
+                    out_kimg.begin() + static_cast<std::ptrdiff_t>(preset_off + kPresetHeaderBackupOffset));
+      } else {
+        std::copy_n(kimg.begin(), static_cast<std::ptrdiff_t>(kHeaderBackupLen),
+                    out_kimg.begin() + static_cast<std::ptrdiff_t>(preset_off + kPresetHeaderBackupOffset));
+      }
 
       std::fill_n(out_kimg.begin() + static_cast<std::ptrdiff_t>(preset_off + kPresetSuperKeyOffset),
                   static_cast<std::ptrdiff_t>(kSuperKeyLen),

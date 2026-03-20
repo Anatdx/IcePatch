@@ -1,10 +1,12 @@
 package com.anatdx.icepatch
 
 import android.app.Application
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Build
+import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.core.content.edit
@@ -28,6 +30,7 @@ import okhttp3.OkHttpClient
 import java.io.File
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 import kotlin.system.exitProcess
 
@@ -37,6 +40,11 @@ const val TAG = "IcePatch"
 
 class APApplication : Application(), Thread.UncaughtExceptionHandler {
     lateinit var okhttpClient: OkHttpClient
+    private val previousUncaughtExceptionHandler = Thread.getDefaultUncaughtExceptionHandler()
+    private val crashHandling = AtomicBoolean(false)
+
+    @Volatile
+    private var startedActivityCount = 0
 
     init {
         Thread.setDefaultUncaughtExceptionHandler(this)
@@ -316,6 +324,22 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
     override fun onCreate() {
         super.onCreate()
         apApp = this
+        registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
+            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+            override fun onActivityDestroyed(activity: Activity) = Unit
+
+            override fun onActivityStarted(activity: Activity) {
+                startedActivityCount++
+            }
+
+            override fun onActivityStopped(activity: Activity) {
+                if (startedActivityCount > 0) startedActivityCount--
+            }
+
+            override fun onActivityResumed(activity: Activity) = Unit
+            override fun onActivityPaused(activity: Activity) = Unit
+        })
 
         val isArm64 = Build.SUPPORTED_ABIS.any { it == "arm64-v8a" }
         if (!isArm64) {
@@ -360,15 +384,34 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
     }
 
     override fun uncaughtException(t: Thread, e: Throwable) {
+        if (!crashHandling.compareAndSet(false, true)) {
+            previousUncaughtExceptionHandler?.uncaughtException(t, e)
+            exitProcess(10)
+        }
+
         val exceptionMessage = Log.getStackTraceString(e)
         val threadName = t.name
         Log.e(TAG, "Error on thread $threadName:\n $exceptionMessage")
-        val intent = Intent(this, CrashHandleActivity::class.java).apply {
-            putExtra("exception_message", exceptionMessage)
-            putExtra("thread", threadName)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+
+        // If we crash before any activity is visible, launching CrashHandleActivity tends to
+        // turn into a restart loop on modern Android. In that case, hand off to the platform
+        // crash path instead of trying to recover in-process.
+        if (startedActivityCount <= 0) {
+            previousUncaughtExceptionHandler?.uncaughtException(t, e)
+            exitProcess(10)
         }
-        startActivity(intent)
+
+        runCatching {
+            val intent = Intent(this, CrashHandleActivity::class.java).apply {
+                putExtra("exception_message", exceptionMessage)
+                putExtra("thread", threadName)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            startActivity(intent)
+        }.onFailure {
+            Log.e(TAG, "Failed to launch crash handler activity", it)
+            previousUncaughtExceptionHandler?.uncaughtException(t, e)
+        }
         exitProcess(10)
     }
 }

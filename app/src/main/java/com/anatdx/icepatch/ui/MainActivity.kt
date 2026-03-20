@@ -197,7 +197,9 @@ class MainActivity : AppCompatActivity() {
                 val apState by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
                 val rootlessMode by APApplication.rootlessModeLiveData.observeAsState(false)
                 val kPatchReady = kpState != APApplication.State.UNKNOWN_STATE
-                val aPatchReady = apState == APApplication.State.ANDROIDPATCH_INSTALLED
+                val aPatchReady =
+                    apState == APApplication.State.ANDROIDPATCH_INSTALLED ||
+                        apState == APApplication.State.ANDROIDPATCH_NEED_UPDATE
                 val visibleDestinations = remember(kpState, apState, rootlessMode) {
                     BottomBarDestination.entries.filter { destination ->
                         !(destination.kPatchRequired && !kPatchReady) &&

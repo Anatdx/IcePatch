@@ -110,6 +110,8 @@ bool CopyFileWithMode(const std::string &from, const std::string &to,
     }
     return false;
   }
+  const std::string tmp = to + ".tmp";
+  unlink(tmp.c_str());
   std::ifstream ifs(from, std::ios::binary);
   if (!ifs) {
     if (out_error != nullptr) {
@@ -117,24 +119,33 @@ bool CopyFileWithMode(const std::string &from, const std::string &to,
     }
     return false;
   }
-  std::ofstream ofs(to, std::ios::binary | std::ios::trunc);
+  std::ofstream ofs(tmp, std::ios::binary | std::ios::trunc);
   if (!ofs) {
     if (out_error != nullptr) {
-      *out_error = "failed to open destination file: " + to;
+      *out_error = "failed to open temporary file: " + tmp;
     }
     return false;
   }
   ofs << ifs.rdbuf();
   ofs.flush();
   if (!ofs) {
+    unlink(tmp.c_str());
     if (out_error != nullptr) {
-      *out_error = "failed to write destination file: " + to;
+      *out_error = "failed to write temporary file: " + tmp;
     }
     return false;
   }
-  if (chmod(to.c_str(), mode) != 0) {
+  if (chmod(tmp.c_str(), mode) != 0) {
+    unlink(tmp.c_str());
     if (out_error != nullptr) {
-      *out_error = "chmod failed for: " + to;
+      *out_error = "chmod failed for: " + tmp;
+    }
+    return false;
+  }
+  if (rename(tmp.c_str(), to.c_str()) != 0) {
+    unlink(tmp.c_str());
+    if (out_error != nullptr) {
+      *out_error = "failed to replace destination file: " + to;
     }
     return false;
   }

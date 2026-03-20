@@ -27,3 +27,7 @@
 -allowaccessmodification
 -overloadaggressively
 -renamesourcefileattribute SourceFile
+
+# JNI registration in libapjni.so depends on the exact method names/signatures.
+-keep class com.anatdx.icepatch.Natives { *; }
+-keep class com.anatdx.icepatch.Natives$* { *; }
